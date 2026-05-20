@@ -16,6 +16,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "${SCRIPT_DIR}/plugins/lucky.sh"
 . "${SCRIPT_DIR}/plugins/luci-theme-argon.sh"
 . "${SCRIPT_DIR}/plugins/taskplan.sh"
+. "${SCRIPT_DIR}/plugins/passwall2.sh"
+. "${SCRIPT_DIR}/plugins/passwall.sh"
 
 TTY="/dev/tty"
 
@@ -102,6 +104,14 @@ install_plugin_menu() {
                 install_taskplan
                 wait_for_enter
                 ;;
+            9)
+                install_passwall2
+                wait_for_enter
+                ;;
+            10)
+                install_passwall
+                wait_for_enter
+                ;;
             0)
                 return
                 ;;
@@ -125,31 +135,39 @@ uninstall_menu() {
                 wait_for_enter
                 ;;
             2)
-                uninstall_mosdns
+                uninstall_passwall
                 wait_for_enter
                 ;;
             3)
-                uninstall_adguardhome
+                uninstall_mosdns
                 wait_for_enter
                 ;;
             4)
-                uninstall_docker
+                uninstall_adguardhome
                 wait_for_enter
                 ;;
             5)
-                uninstall_luci_theme_aurora
+                uninstall_docker
                 wait_for_enter
                 ;;
             6)
-                uninstall_lucky
+                uninstall_luci_theme_aurora
                 wait_for_enter
                 ;;
             7)
-                uninstall_luci_theme_argon
+                uninstall_lucky
                 wait_for_enter
                 ;;
             8)
+                uninstall_luci_theme_argon
+                wait_for_enter
+                ;;
+            9)
                 uninstall_taskplan
+                wait_for_enter
+                ;;
+            11)
+                uninstall_passwall2
                 wait_for_enter
                 ;;
             0)
@@ -207,6 +225,14 @@ update_menu() {
                 wait_for_enter
                 ;;
             10)
+                update_passwall2
+                wait_for_enter
+                ;;
+            11)
+                update_passwall
+                wait_for_enter
+                ;;
+            12)
                 update_all
                 wait_for_enter
                 ;;
@@ -306,7 +332,7 @@ update_store() {
         wget -q --timeout=30 -O "${tmp_dir}/core/${f}" "${raw_url}/core/${f}" 2>/dev/null || true
     done
 
-    for f in openclash.sh passwall.sh mosdns.sh adguardhome.sh docker.sh luci-theme-aurora.sh lucky.sh luci-theme-argon.sh taskplan.sh; do
+    for f in openclash.sh passwall.sh mosdns.sh adguardhome.sh docker.sh luci-theme-aurora.sh lucky.sh luci-theme-argon.sh taskplan.sh passwall2.sh; do
         wget -q --timeout=30 -O "${tmp_dir}/plugins/${f}" "${raw_url}/plugins/${f}" 2>/dev/null || true
     done
 
@@ -327,7 +353,7 @@ update_store() {
         cp -f "${tmp_dir}/core/${f}" "${SCRIPT_DIR}/core/${f}" 2>/dev/null || { echo "[错误] core/${f} 复制失败"; rm -rf "$tmp_dir"; sleep 2; return; }
     done
 
-    for f in openclash.sh mosdns.sh adguardhome.sh docker.sh luci-theme-aurora.sh lucky.sh luci-theme-argon.sh taskplan.sh; do
+    for f in openclash.sh mosdns.sh adguardhome.sh docker.sh luci-theme-aurora.sh lucky.sh luci-theme-argon.sh taskplan.sh passwall2.sh passwall.sh; do
         cp -f "${tmp_dir}/plugins/${f}" "${SCRIPT_DIR}/plugins/${f}" 2>/dev/null || { echo "[错误] plugins/${f} 复制失败"; rm -rf "$tmp_dir"; sleep 2; return; }
     done
 
