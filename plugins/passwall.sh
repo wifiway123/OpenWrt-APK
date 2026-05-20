@@ -49,7 +49,7 @@ install_passwall() {
     rm -rf "$download_dir"
     mkdir -p "$download_dir"
 
-    local pkg_zip_url
+    local pkg_zip_url=""
     pkg_zip_url=$(echo "$all_urls" | grep "passwall_packages_apk_${arch}\.zip$" | head -1)
 
     if [ -z "$pkg_zip_url" ]; then
@@ -62,15 +62,6 @@ install_passwall() {
 
     if [ -z "$pkg_zip_url" ]; then
         pkg_zip_url=$(echo "$all_urls" | grep "passwall_packages_ipk_" | grep "${arch}" | grep "\.zip$" | head -1)
-    fi
-
-    if [ -z "$pkg_zip_url" ]; then
-        local avail_archs
-        avail_archs=$(echo "$all_urls" | grep "passwall_packages_" | grep "\.zip$" | sed 's/.*passwall_packages_[a-z]*_//' | sed 's/\.zip//' | sort -u | tr '\n' ' ')
-        echo "[错误] 未找到匹配架构 ${arch} 的依赖包"
-        echo "[提示] 当前架构: $arch"
-        echo "[提示] 可用架构: $avail_archs"
-        return 1
     fi
 
     local luci_name
@@ -89,23 +80,19 @@ install_passwall() {
         wget -q --timeout=60 -O "${download_dir}/${i18n_name}" "$i18n_url" 2>/dev/null || echo "[警告] 中文包下载失败"
     fi
 
-    local zip_name
-    zip_name=$(basename "$pkg_zip_url")
-    echo "[下载] $zip_name (依赖包)"
-    if ! wget -q --timeout=180 -O "${download_dir}/${zip_name}" "$pkg_zip_url" 2>/dev/null; then
-        echo "[错误] 下载失败: $zip_name"
-        rm -f "${download_dir}/${zip_name}"
-        return 1
+    if [ -n "$pkg_zip_url" ]; then
+        local zip_name
+        zip_name=$(basename "$pkg_zip_url")
+        echo "[下载] $zip_name (依赖包)"
+        if wget -q --timeout=180 -O "${download_dir}/${zip_name}" "$pkg_zip_url" 2>/dev/null; then
+            echo "[解压] 正在解压依赖包..."
+            unzip -o -q "${download_dir}/${zip_name}" -d "${download_dir}/packages" 2>/dev/null && rm -f "${download_dir}/${zip_name}"
+        else
+            echo "[警告] 依赖包下载失败，将尝试自动安装依赖"
+        fi
+    else
+        echo "[提示] 未找到预编译依赖包，将使用包管理器自动安装依赖"
     fi
-
-    echo "[解压] 正在解压依赖包..."
-    if ! unzip -o -q "${download_dir}/${zip_name}" -d "${download_dir}/packages" 2>/dev/null; then
-        echo "[错误] 解压失败: $zip_name"
-        rm -f "${download_dir}/${zip_name}"
-        return 1
-    fi
-
-    rm -f "${download_dir}/${zip_name}"
 
     local is_apk=0
     case "$luci_name" in *.apk) is_apk=1 ;; esac
@@ -115,7 +102,6 @@ install_passwall() {
         apk_files=$(find "${download_dir}/packages" -name "*.apk" 2>/dev/null)
 
         if [ -z "$apk_files" ]; then
-            echo "[警告] 解压后未找到 APK 依赖包，尝试查找 IPK..."
             apk_files=$(find "${download_dir}/packages" -name "*.ipk" 2>/dev/null)
         fi
 
