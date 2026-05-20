@@ -141,14 +141,25 @@ install_passwall() {
 
     echo "[成功] 安装完成"
 
-    if [ -f /etc/init.d/passwall ]; then
-        echo "[注册] 注册 PassWall 服务..."
-        /etc/init.d/passwall enable 2>/dev/null || echo "[警告] 服务注册失败"
-    fi
+    local found_init=0
+    for svc in passwall passwall_main; do
+        if [ -f "/etc/init.d/${svc}" ]; then
+            echo "[注册] 注册 ${svc} 服务..."
+            "/etc/init.d/${svc}" enable 2>/dev/null && found_init=1 || true
+        fi
+    done
 
-    if [ -f /etc/init.d/passwall2 ]; then
-        echo "[注册] 注册 PassWall2 服务..."
-        /etc/init.d/passwall2 enable 2>/dev/null || echo "[警告] 服务注册失败"
+    if [ "$found_init" -eq 0 ]; then
+        local init_files
+        init_files=$(ls /etc/init.d/*passwall* 2>/dev/null)
+        if [ -n "$init_files" ]; then
+            echo "$init_files" | while read -r f; do
+                echo "[注册] 注册 $(basename "$f") 服务..."
+                "$f" enable 2>/dev/null || true
+            done
+        else
+            echo "[提示] 未找到 PassWall 启动脚本"
+        fi
     fi
 
     echo "[重启] 重启 LuCI..."
