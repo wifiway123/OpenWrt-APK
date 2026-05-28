@@ -194,11 +194,19 @@ install_adguardhome_luci_github() {
     local is_apk="$1"
     local owner="stevenjoezhang"
     local repo="luci-app-adguardhome"
+    local tag="v0.107.74"
+    local release_url="https://api.github.com/repos/${owner}/${repo}/releases/tags/${tag}"
+
+    echo "[下载] 正在获取 LuCI 界面 ${tag}..."
+
     local release_json
-    release_json=$(get_latest_release "$owner" "$repo") || return 1
+    release_json=$(wget -q --timeout=30 -O- "$release_url" 2>/dev/null) || {
+        echo "[错误] 获取 Release 信息失败: $tag"
+        return 1
+    }
 
     local all_urls
-    all_urls=$(get_download_urls "$release_json")
+    all_urls=$(echo "$release_json" | grep -o '"browser_download_url":"[^"]*"' | sed 's/"browser_download_url":"//;s/"//')
     local pkg_ext
     [ "$is_apk" -eq 1 ] && pkg_ext="apk" || pkg_ext="ipk"
 
