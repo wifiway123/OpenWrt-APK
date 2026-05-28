@@ -13,10 +13,6 @@ install_adguardhome() {
     mkdir -p "$AGH_WORK_DIR"
     chmod 755 "$AGH_WORK_DIR"
 
-    local arch
-    arch=$(detect_arch) || return 1
-    echo "[架构] $arch"
-
     . /etc/openwrt_release 2>/dev/null
     local release_ver
     release_ver=$(echo "$DISTRIB_RELEASE" | cut -d'.' -f1,2)
@@ -25,37 +21,7 @@ install_adguardhome() {
         25.*|snapshot) is_apk=1 ;;
     esac
 
-    echo "[步骤 1/3] 安装 AdGuardHome 核心..."
-    local core_installed=0
-
-    if [ "$is_apk" -eq 1 ]; then
-        echo "[尝试] 从软件源安装..."
-        apk update 2>/dev/null
-        if apk add --allow-untrusted adguardhome 2>/dev/null; then
-            echo "[成功] 从软件源安装完成"
-            core_installed=1
-        else
-            echo "[警告] 软件源安装失败，尝试从 GitHub 下载..."
-        fi
-    else
-        echo "[尝试] 从软件源安装..."
-        opkg update 2>/dev/null
-        if opkg install adguardhome 2>/dev/null; then
-            echo "[成功] 从软件源安装完成"
-            core_installed=1
-        else
-            echo "[警告] 软件源安装失败，尝试从 GitHub 下载..."
-        fi
-    fi
-
-    if [ "$core_installed" -eq 0 ]; then
-        install_adguardhome_core_github "$arch" || {
-            echo "[错误] AdGuardHome 核心安装失败"
-            return 1
-        }
-    fi
-
-    echo "[步骤 2/3] 安装 LuCI 界面..."
+    echo "[步骤 1/2] 安装 LuCI 界面..."
     if [ "$is_apk" -eq 1 ]; then
         apk add --allow-untrusted luci-app-adguardhome luci-i18n-adguardhome-zh-cn 2>/dev/null || {
             echo "[警告] LuCI 界面安装失败，尝试从 GitHub 安装..."
@@ -68,7 +34,7 @@ install_adguardhome() {
         }
     fi
 
-    echo "[步骤 3/3] 配置核心更新链接及初始化环境..."
+    echo "[步骤 2/2] 配置核心更新链接及初始化环境..."
     setup_adguardhome_links || echo "[警告] 链接配置失败"
 
     if [ "$is_apk" -eq 1 ]; then
