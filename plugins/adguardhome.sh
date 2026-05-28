@@ -101,36 +101,25 @@ install_adguardhome() {
 
 install_adguardhome_core_github() {
     local arch="$1"
-    local owner="AdguardTeam"
-    local repo="AdGuardHome"
 
     echo "[下载] 正在获取最新版本..."
-    local release_json
-    release_json=$(get_latest_release "$owner" "$repo") || return 1
-
-    local tag
-    tag=$(get_release_tag "$release_json")
-    echo "[版本] $tag"
-
-    local all_urls
-    all_urls=$(get_download_urls "$release_json")
 
     local download_url=""
     case "$arch" in
         x86_64)
-            download_url=$(echo "$all_urls" | grep "AdGuardHome_linux_amd64.tar.gz" | head -1)
+            download_url="https://static.adguard.com/adguardhome/release/AdGuardHome_linux_amd64.tar.gz"
             ;;
         aarch64)
-            download_url=$(echo "$all_urls" | grep "AdGuardHome_linux_arm64.tar.gz" | head -1)
+            download_url="https://static.adguard.com/adguardhome/release/AdGuardHome_linux_arm64.tar.gz"
             ;;
         arm)
-            download_url=$(echo "$all_urls" | grep "AdGuardHome_linux_armv7.tar.gz" | head -1)
+            download_url="https://static.adguard.com/adguardhome/release/AdGuardHome_linux_armv7.tar.gz"
             ;;
         mipsel)
-            download_url=$(echo "$all_urls" | grep "AdGuardHome_linux_mipsle_softfloat.tar.gz" | head -1)
+            download_url="https://static.adguard.com/adguardhome/release/AdGuardHome_linux_mipsle_softfloat.tar.gz"
             ;;
         mips)
-            download_url=$(echo "$all_urls" | grep "AdGuardHome_linux_mips_softfloat.tar.gz" | head -1)
+            download_url="https://static.adguard.com/adguardhome/release/AdGuardHome_linux_mips_softfloat.tar.gz"
             ;;
         *)
             echo "[错误] 不支持的架构: $arch"
@@ -324,11 +313,11 @@ setup_adguardhome_links() {
     local link_file="/usr/share/AdGuardHome/links.txt"
 
     cat <<EOF > "$link_file"
-https://github.com/AdguardTeam/AdGuardHome/releases/download/{version}/AdGuardHome_linux_amd64.tar.gz
-https://github.com/AdguardTeam/AdGuardHome/releases/download/{version}/AdGuardHome_linux_arm64.tar.gz
-https://github.com/AdguardTeam/AdGuardHome/releases/download/{version}/AdGuardHome_linux_armv7.tar.gz
-https://github.com/AdguardTeam/AdGuardHome/releases/download/{version}/AdGuardHome_linux_mipsle_softfloat.tar.gz
-https://github.com/AdguardTeam/AdGuardHome/releases/download/{version}/AdGuardHome_linux_mips_softfloat.tar.gz
+https://static.adguard.com/adguardhome/release/AdGuardHome_linux_amd64.tar.gz
+https://static.adguard.com/adguardhome/release/AdGuardHome_linux_arm64.tar.gz
+https://static.adguard.com/adguardhome/release/AdGuardHome_linux_armv7.tar.gz
+https://static.adguard.com/adguardhome/release/AdGuardHome_linux_mipsle_softfloat.tar.gz
+https://static.adguard.com/adguardhome/release/AdGuardHome_linux_mips_softfloat.tar.gz
 EOF
 
     echo "[配置] 默认下载链接已更新"
