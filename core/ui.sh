@@ -72,7 +72,7 @@ show_uninstall_menu() {
     echo "10. 卸载 SmartDNS"
     echo "0.  返回上级"
     echo ""
-}1
+}
 
 show_update_menu() {
     echo "================================"
