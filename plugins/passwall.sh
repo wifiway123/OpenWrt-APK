@@ -28,6 +28,8 @@ install_passwall() {
     else
         ver_tag="23.05-24.10"
     fi
+    local ver_tag_esc
+    ver_tag_esc=$(echo "$ver_tag" | sed 's/\+/\\+/g')
     echo "[系统] OpenWrt $release_ver ($ver_tag)"
 
     local owner="Openwrt-Passwall"
@@ -53,7 +55,7 @@ install_passwall() {
     [ "$is_apk" -eq 1 ] && pkg_ext="apk" || pkg_ext="ipk"
 
     local luci_url
-    luci_url=$(echo "$all_urls" | grep "${ver_tag}" | grep "luci-app-passwall" | grep "\.${pkg_ext}$" | head -1)
+    luci_url=$(echo "$all_urls" | grep "${ver_tag_esc}" | grep "luci-app-passwall" | grep "\.${pkg_ext}$" | head -1)
 
     if [ -z "$luci_url" ]; then
         echo "[重试] 未找到匹配版本，尝试通用匹配..."
@@ -88,7 +90,7 @@ install_passwall() {
     echo "[步骤 2/2] 下载 PassWall 中文语言包..."
     local i18n_name=""
     local i18n_url
-    i18n_url=$(echo "$all_urls" | grep "${ver_tag}" | grep "luci-i18n-passwall-zh-cn" | grep "\.${pkg_ext}$" | head -1)
+    i18n_url=$(echo "$all_urls" | grep "${ver_tag_esc}" | grep "luci-i18n-passwall-zh-cn" | grep "\.${pkg_ext}$" | head -1)
 
     if [ -z "$i18n_url" ]; then
         echo "[重试] 未找到匹配版本中文包，尝试通用匹配..."
@@ -117,28 +119,66 @@ install_passwall() {
 
     if [ "$is_apk" -eq 1 ]; then
         echo "[安装] 安装 LuCI 主程序..."
-        if apk add --allow-untrusted "${download_dir}/${luci_name}" 2>/dev/null; then
+
+        local luci_file
+        luci_file=$(basename "$luci_url" | sed 's/%2B/+/g')
+        if [ "$luci_file" != "$(basename "$luci_url")" ]; then
+            mv -f "${download_dir}/$(basename "$luci_url")" "${download_dir}/${luci_file}" 2>/dev/null
+        fi
+
+        if apk add --allow-untrusted --force-overwrite "${download_dir}/${luci_file}" 2>/dev/null; then
+            echo "[成功] LuCI 主程序安装完成"
             install_ok=1
+        else
+            echo "[警告] 直接安装失败，尝试添加软件源后重试..."
+            local passwall_repo="https://sourceforge.net/projects/openwrt-passwall-build/files/snapshots/packages"
+            local arch_apk
+            arch_apk=$(uname -m)
+            echo "src/gz passwall_build ${passwall_repo}/${arch_apk}/passwall_packages" >> /etc/apk/repositories.d/passwall.list 2>/dev/null
+            apk update 2>/dev/null
+            if apk add --allow-untrusted --force-overwrite "${download_dir}/${luci_file}" 2>/dev/null; then
+                echo "[成功] LuCI 主程序安装完成"
+                install_ok=1
+            fi
         fi
 
         if [ -n "$i18n_name" ] && [ -f "${download_dir}/${i18n_name}" ]; then
             echo "[安装] 安装中文包..."
-            apk add --allow-untrusted "${download_dir}/${i18n_name}" 2>/dev/null
+            local i18n_file
+            i18n_file=$(echo "$i18n_name" | sed 's/%2B/+/g')
+            if [ "$i18n_file" != "$i18n_name" ]; then
+                mv -f "${download_dir}/${i18n_name}" "${download_dir}/${i18n_file}" 2>/dev/null
+            fi
+            apk add --allow-untrusted --force-overwrite "${download_dir}/${i18n_file}" 2>/dev/null && echo "[成功] 中文包安装完成"
         fi
     else
         echo "[安装] 安装 LuCI 主程序..."
-        if opkg install --force-overwrite "${download_dir}/${luci_name}" 2>/dev/null; then
+        local luci_file
+        luci_file=$(basename "$luci_url" | sed 's/%2B/+/g')
+        if [ "$luci_file" != "$(basename "$luci_url")" ]; then
+            mv -f "${download_dir}/$(basename "$luci_url")" "${download_dir}/${luci_file}" 2>/dev/null
+        fi
+
+        if opkg install --force-overwrite "${download_dir}/${luci_file}" 2>/dev/null; then
+            echo "[成功] LuCI 主程序安装完成"
             install_ok=1
         fi
 
         if [ -n "$i18n_name" ] && [ -f "${download_dir}/${i18n_name}" ]; then
             echo "[安装] 安装中文包..."
-            opkg install --force-overwrite "${download_dir}/${i18n_name}" 2>/dev/null
+            local i18n_file
+            i18n_file=$(echo "$i18n_name" | sed 's/%2B/+/g')
+            if [ "$i18n_file" != "$i18n_name" ]; then
+                mv -f "${download_dir}/${i18n_name}" "${download_dir}/${i18n_file}" 2>/dev/null
+            fi
+            opkg install --force-overwrite "${download_dir}/${i18n_file}" 2>/dev/null && echo "[成功] 中文包安装完成"
         fi
     fi
 
     if [ "$install_ok" -eq 0 ]; then
         echo "[错误] 安装失败"
+        echo "[提示] 可能是缺少依赖，请手动执行以下命令查看详细错误："
+        echo "    apk add --allow-untrusted ${download_dir}/${luci_file}"
         return 1
     fi
 
