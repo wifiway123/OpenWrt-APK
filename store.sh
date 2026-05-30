@@ -17,7 +17,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "${SCRIPT_DIR}/plugins/luci-theme-argon.sh"
 . "${SCRIPT_DIR}/plugins/taskplan.sh"
 . "${SCRIPT_DIR}/plugins/passwall2.sh"
-. "${SCRIPT_DIR}/plugins/smartdns.sh"
+[ -f "${SCRIPT_DIR}/plugins/smartdns.sh" ] && . "${SCRIPT_DIR}/plugins/smartdns.sh"
 
 TTY="/dev/tty"
 
