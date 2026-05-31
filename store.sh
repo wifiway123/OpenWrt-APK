@@ -18,6 +18,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "${SCRIPT_DIR}/plugins/taskplan.sh"
 . "${SCRIPT_DIR}/plugins/passwall2.sh"
 [ -f "${SCRIPT_DIR}/plugins/smartdns.sh" ] && . "${SCRIPT_DIR}/plugins/smartdns.sh"
+[ -f "${SCRIPT_DIR}/plugins/daed.sh" ] && . "${SCRIPT_DIR}/plugins/daed.sh"
 
 TTY="/dev/tty"
 
@@ -112,6 +113,10 @@ install_plugin_menu() {
                 install_smartdns
                 wait_for_enter
                 ;;
+            11)
+                install_daed
+                wait_for_enter
+                ;;
             0)
                 return
                 ;;
@@ -168,6 +173,10 @@ uninstall_menu() {
                 ;;
             10)
                 uninstall_smartdns
+                wait_for_enter
+                ;;
+            11)
+                uninstall_daed
                 wait_for_enter
                 ;;
             0)
@@ -229,6 +238,10 @@ update_menu() {
                 wait_for_enter
                 ;;
             11)
+                update_daed
+                wait_for_enter
+                ;;
+            12)
                 update_all
                 wait_for_enter
                 ;;
@@ -259,6 +272,7 @@ update_all() {
     update_luci_theme_aurora
     update_lucky
     update_smartdns
+    update_daed
 
     echo ""
     echo "================================"
@@ -329,7 +343,7 @@ update_store() {
         wget -q --timeout=30 -O "${tmp_dir}/core/${f}" "${raw_url}/core/${f}" 2>/dev/null || true
     done
 
-    for f in openclash.sh mosdns.sh adguardhome.sh docker.sh luci-theme-aurora.sh lucky.sh luci-theme-argon.sh taskplan.sh passwall2.sh smartdns.sh; do
+    for f in openclash.sh mosdns.sh adguardhome.sh docker.sh luci-theme-aurora.sh lucky.sh luci-theme-argon.sh taskplan.sh passwall2.sh smartdns.sh daed.sh; do
         wget -q --timeout=30 -O "${tmp_dir}/plugins/${f}" "${raw_url}/plugins/${f}" 2>/dev/null || true
     done
 
