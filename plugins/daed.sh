@@ -71,6 +71,11 @@ install_daed() {
         rm -f "${download_dir}/${core_file}"
         return 1
     fi
+    if [ ! -s "${download_dir}/${core_file}" ]; then
+        echo "[错误] 核心程序文件为空"
+        rm -f "${download_dir}/${core_file}"
+        return 1
+    fi
 
     echo "[下载] LuCI 界面..."
     local luci_file
@@ -80,12 +85,18 @@ install_daed() {
         rm -f "${download_dir}/${luci_file}"
         return 1
     fi
+    if [ ! -s "${download_dir}/${luci_file}" ]; then
+        echo "[错误] LuCI 界面文件为空"
+        rm -f "${download_dir}/${luci_file}"
+        return 1
+    fi
 
     echo "[安装] 正在安装..."
-    if apk add --allow-untrusted --force-overwrite "${download_dir}/${core_file}" "${download_dir}/${luci_file}" 2>/dev/null; then
+    if cd "$download_dir" && apk add --allow-untrusted --force-overwrite --clean-protected *.apk 2>/dev/null; then
         echo "[成功] APK 安装完成"
     else
         echo "[错误] APK 安装失败"
+        cd /
         return 1
     fi
 
