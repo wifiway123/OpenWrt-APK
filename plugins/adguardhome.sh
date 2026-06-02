@@ -37,87 +37,46 @@ install_adguardhome() {
     local all_urls
     all_urls=$(get_download_urls "$release_json")
 
-    local tarball_url
-    tarball_url=$(echo "$all_urls" | grep "${openwrt_ver}-${arch}\.tar\.gz$" | head -1)
+    local main_url
+    main_url=$(echo "$all_urls" | grep "luci-app-adguardhome" | grep -v "i18n" | grep "\.apk$" | head -1)
 
-    if [ -z "$tarball_url" ]; then
-        echo "[重试] 未找到 ${arch} 匹配包，尝试模糊匹配..."
-        tarball_url=$(echo "$all_urls" | grep "${openwrt_ver}-" | grep -i "$(uname -m)" | grep "\.tar\.gz$" | head -1)
-    fi
-
-    if [ -z "$tarball_url" ]; then
-        tarball_url=$(echo "$all_urls" | grep "\.tar\.gz$" | grep -i "${arch}" | head -1)
-    fi
-
-    if [ -z "$tarball_url" ]; then
-        echo "[错误] 未找到匹配架构 ${arch} 的下载包"
+    if [ -z "$main_url" ]; then
+        echo "[错误] 未找到主包下载链接"
         return 1
     fi
+
+    local i18n_url
+    i18n_url=$(echo "$all_urls" | grep "luci-i18n-adguardhome-zh-cn" | grep "\.apk$" | head -1)
 
     local download_dir="${CACHE_DIR}/${plugin_name}"
     rm -rf "$download_dir"
     mkdir -p "$download_dir"
 
-    local tarball_name
-    tarball_name=$(basename "$tarball_url")
+    local main_name
+    main_name=$(basename "$main_url")
 
-    echo "[下载] $tarball_name"
-    if ! wget -q --timeout=60 -O "${download_dir}/${tarball_name}" "$tarball_url" 2>/dev/null; then
-        echo "[错误] 下载失败"
-        rm -f "${download_dir}/${tarball_name}"
+    echo "[下载] $main_name"
+    if ! wget -q --timeout=60 -O "${download_dir}/${main_name}" "$main_url" 2>/dev/null; then
+        echo "[错误] 主包下载失败"
+        rm -f "${download_dir}/${main_name}"
         return 1
     fi
 
-    echo "[解压] 正在解压..."
-    if ! tar xzf "${download_dir}/${tarball_name}" -C "$download_dir" 2>/dev/null; then
-        echo "[错误] 解压失败"
-        rm -f "${download_dir}/${tarball_name}"
-        return 1
-    fi
+    local apk_list="${download_dir}/${main_name}"
 
-    rm -f "${download_dir}/${tarball_name}"
-
-    local ipk_files
-    ipk_files=$(find "$download_dir" -name "*.apk" -o -name "*.ipk" 2>/dev/null)
-
-    if [ -z "$ipk_files" ]; then
-        echo "[错误] 未找到安装包文件"
-        return 1
-    fi
-
-    local pkg_count
-    pkg_count=$(echo "$ipk_files" | wc -l)
-    echo "[安装] 正在安装 $pkg_count 个包..."
-
-    local apk_list=""
-    local ipk_list=""
-    for f in $ipk_files; do
-        case "$f" in
-            *.apk)
-                apk_list="$apk_list $f"
-                ;;
-            *.ipk)
-                ipk_list="$ipk_list $f"
-                ;;
-        esac
-    done
-
-    local install_ok=0
-    if [ -n "$apk_list" ]; then
-        echo "[安装] 安装 APK 包..."
-        if apk add --allow-untrusted --force-overwrite $apk_list 2>/dev/null; then
-            install_ok=1
+    if [ -n "$i18n_url" ]; then
+        local i18n_name
+        i18n_name=$(basename "$i18n_url")
+        echo "[下载] $i18n_name"
+        if wget -q --timeout=60 -O "${download_dir}/${i18n_name}" "$i18n_url" 2>/dev/null; then
+            apk_list="$apk_list ${download_dir}/${i18n_name}"
+        else
+            echo "[警告] 中文包下载失败，继续安装主包"
         fi
     fi
 
-    if [ -n "$ipk_list" ]; then
-        echo "[安装] 安装 IPK 包..."
-        if opkg install --force-overwrite $ipk_list 2>/dev/null; then
-            install_ok=1
-        fi
-    fi
-
-    if [ "$install_ok" -eq 0 ]; then
+    echo "[安装] 安装 APK 包..."
+    if ! apk add --allow-untrusted --force-overwrite $apk_list 2>/dev/null; then
         echo "[错误] 安装失败"
         return 1
     fi
