@@ -192,7 +192,7 @@ INITEOF
 
 install_adguardhome_luci_github() {
     local is_apk="$1"
-    local owner="stevenjoezhang"
+    local owner="sirpdboy"
     local repo="luci-app-adguardhome"
     local tag="v0.107.74"
     local release_url="https://api.github.com/repos/${owner}/${repo}/releases/tags/${tag}"
