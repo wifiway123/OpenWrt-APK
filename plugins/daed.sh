@@ -149,27 +149,31 @@ install_daed() {
         rm -rf "$tmp_dir"
         mkdir -p "$tmp_dir"
 
-        # OpenWrt APK/IPK 包是 tar.gz 格式
-        tar xzf "${CACHE_DIR}/${plugin_name}/${daed_name}" -C "$tmp_dir" 2>/dev/null
+        echo "[手动] 检查 APK 包结构..."
+        local pkg_file="${CACHE_DIR}/${plugin_name}/${daed_name}"
 
-        # 检查 data.tar.gz (标准 OpenWrt IPK/APK 格式)
-        if [ -f "$tmp_dir/data.tar.gz" ]; then
-            echo "[手动] 解压 data.tar.gz..."
-            tar xzf "$tmp_dir/data.tar.gz" -C / 2>/dev/null && daed_installed=1
-        fi
-
-        # 也可能是直接包含文件的 tar 包
-        if [ "$daed_installed" -eq 0 ]; then
-            # 看看包的结构
-            local has_bin
-            has_bin=$(tar tzf "${CACHE_DIR}/${plugin_name}/${daed_name}" 2>/dev/null | head -5)
-            if echo "$has_bin" | grep -q "usr"; then
-                echo "[手动] 直接解压到根目录..."
-                tar xzf "${CACHE_DIR}/${plugin_name}/${daed_name}" -C / 2>/dev/null && daed_installed=1
+        # 尝试作为标准 OpenWrt IPK 解压（控制包 + data.tar.gz）
+        if tar xzf "$pkg_file" -C "$tmp_dir" 2>/dev/null; then
+            # 检查 data.tar.gz (标准 OpenWrt IPK/APK 格式)
+            if [ -f "$tmp_dir/data.tar.gz" ]; then
+                echo "[手动] 检测到标准包格式，解压 data.tar.gz..."
+                tar xzf "$tmp_dir/data.tar.gz" -C / 2>/dev/null && daed_installed=1
+            elif [ -d "$tmp_dir/data" ]; then
+                echo "[手动] 检测到 data 目录，解压数据文件..."
+                cp -rf "$tmp_dir/data/"* / 2>/dev/null && daed_installed=1
             fi
         fi
 
-        # 运行 postinst 脚本
+        # 如果第一种方式不行，尝试直接解压整个包到根目录
+        if [ "$daed_installed" -eq 0 ]; then
+            echo "[手动] 尝试直接解压到根目录..."
+            tar xzf "$pkg_file" -C / 2>/dev/null
+            if [ -f /usr/bin/daed ] || [ -f /usr/sbin/daed ]; then
+                daed_installed=1
+            fi
+        fi
+
+        # 运行 postinst 脚本（如果有）
         if [ -f "$tmp_dir/postinst" ]; then
             chmod +x "$tmp_dir/postinst"
             "$tmp_dir/postinst" 2>/dev/null || true
