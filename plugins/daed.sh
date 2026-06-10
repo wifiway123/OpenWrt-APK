@@ -236,31 +236,45 @@ install_daed() {
 
     # ----- 安装 LuCI 界面 -----
     echo "[安装] 安装 LuCI 界面..."
+
+    # 先清理残留
+    if [ "$is_apk" -eq 1 ]; then
+        apk del --force-broken-world luci-app-daed 2>/dev/null || true
+    fi
+
     local luci_installed=0
     if [ "$is_apk" -eq 1 ]; then
         if apk add --allow-untrusted --force-overwrite "${CACHE_DIR}/${plugin_name}/${luci_name}" 2>/dev/null; then
             luci_installed=1
         else
-            echo "[提示] 标准安装失败，尝试手动解压..."
+            echo "[提示] 标准安装失败，尝试强制安装..."
+            apk add --allow-untrusted --force-overwrite --force-broken-world "${CACHE_DIR}/${plugin_name}/${luci_name}" 2>/dev/null && luci_installed=1
         fi
     else
-        if opkg install --force-overwrite "${CACHE_DIR}/${plugin_name}/${luci_name}" 2>/dev/null; then
-            luci_installed=1
-        fi
+        opkg install --force-overwrite "${CACHE_DIR}/${plugin_name}/${luci_name}" 2>/dev/null && luci_installed=1 || \
+            opkg install --force-overwrite --force-depends "${CACHE_DIR}/${plugin_name}/${luci_name}" 2>/dev/null && luci_installed=1
     fi
 
-    # 手动解压 LuCI
+    # 手动解压 LuCI（兼容多种格式）
     if [ "$luci_installed" -eq 0 ]; then
+        echo "[手动] 解压 LuCI 包..."
+        local luci_pkg="${CACHE_DIR}/${plugin_name}/${luci_name}"
         local tmp_dir="/tmp/daed-luci-extract-$$"
         rm -rf "$tmp_dir"
         mkdir -p "$tmp_dir"
 
-        if tar xzf "${CACHE_DIR}/${plugin_name}/${luci_name}" -C "$tmp_dir" 2>/dev/null; then
-            if [ -f "$tmp_dir/data.tar.gz" ]; then
-                tar xzf "$tmp_dir/data.tar.gz" -C / 2>/dev/null && luci_installed=1
-            else
-                tar xzf "${CACHE_DIR}/${plugin_name}/${luci_name}" -C / 2>/dev/null && luci_installed=1
-            fi
+        tar xzf "$luci_pkg" -C "$tmp_dir" 2>/dev/null || \
+            gzip -dc "$luci_pkg" | tar xf - -C "$tmp_dir" 2>/dev/null || \
+            unzip -o -q "$luci_pkg" -d "$tmp_dir" 2>/dev/null || true
+
+        if [ -f "$tmp_dir/data.tar.gz" ]; then
+            tar xzf "$tmp_dir/data.tar.gz" -C / 2>/dev/null && luci_installed=1
+        fi
+
+        if [ "$luci_installed" -eq 0 ]; then
+            tar xzf "$luci_pkg" -C / 2>/dev/null || true
+            gzip -dc "$luci_pkg" | tar xf - -C / 2>/dev/null || true
+            unzip -o -q "$luci_pkg" -d / 2>/dev/null || true
         fi
 
         if [ -f "$tmp_dir/postinst" ]; then
@@ -269,6 +283,12 @@ install_daed() {
         fi
 
         rm -rf "$tmp_dir"
+
+        # 验证 LuCI 文件是否落地
+        if ls /usr/lib/lua/luci/controller/daed.lua >/dev/null 2>&1 || \
+           ls /usr/share/luci/menu.d/*daed* >/dev/null 2>&1; then
+            luci_installed=1
+        fi
     fi
 
     if [ "$luci_installed" -eq 0 ]; then
@@ -280,23 +300,31 @@ install_daed() {
     # ----- 安装中文包 -----
     if [ -n "$i18n_name" ] && [ -f "${CACHE_DIR}/${plugin_name}/${i18n_name}" ]; then
         echo "[安装] 安装中文包..."
+        local i18n_pkg="${CACHE_DIR}/${plugin_name}/${i18n_name}"
         if [ "$is_apk" -eq 1 ]; then
-            if ! apk add --allow-untrusted --force-overwrite "${CACHE_DIR}/${plugin_name}/${i18n_name}" 2>/dev/null; then
+            if apk add --allow-untrusted --force-overwrite "$i18n_pkg" 2>/dev/null; then
+                echo "[成功] 中文包安装完成"
+            elif apk add --allow-untrusted --force-overwrite --force-broken-world "$i18n_pkg" 2>/dev/null; then
+                echo "[成功] 中文包安装完成"
+            else
                 # 手动解压
                 local tmp_dir="/tmp/daed-i18n-extract-$$"
                 rm -rf "$tmp_dir"
                 mkdir -p "$tmp_dir"
-                if tar xzf "${CACHE_DIR}/${plugin_name}/${i18n_name}" -C "$tmp_dir" 2>/dev/null; then
-                    [ -f "$tmp_dir/data.tar.gz" ] && tar xzf "$tmp_dir/data.tar.gz" -C / 2>/dev/null
-                    tar xzf "${CACHE_DIR}/${plugin_name}/${i18n_name}" -C / 2>/dev/null
-                fi
+                tar xzf "$i18n_pkg" -C "$tmp_dir" 2>/dev/null || \
+                    gzip -dc "$i18n_pkg" | tar xf - -C "$tmp_dir" 2>/dev/null || \
+                    unzip -o -q "$i18n_pkg" -d "$tmp_dir" 2>/dev/null || true
+                [ -f "$tmp_dir/data.tar.gz" ] && tar xzf "$tmp_dir/data.tar.gz" -C / 2>/dev/null
+                tar xzf "$i18n_pkg" -C / 2>/dev/null || true
+                gzip -dc "$i18n_pkg" | tar xf - -C / 2>/dev/null || true
+                unzip -o -q "$i18n_pkg" -d / 2>/dev/null || true
                 rm -rf "$tmp_dir"
                 echo "[成功] 中文包已安装"
-            else
-                echo "[成功] 中文包安装完成"
             fi
         else
-            opkg install --force-overwrite "${CACHE_DIR}/${plugin_name}/${i18n_name}" 2>/dev/null || echo "[警告] 中文包安装失败"
+            opkg install --force-overwrite "$i18n_pkg" 2>/dev/null && echo "[成功] 中文包安装完成" || {
+                opkg install --force-overwrite --force-depends "$i18n_pkg" 2>/dev/null && echo "[成功] 中文包安装完成" || echo "[警告] 中文包安装失败"
+            }
         fi
     fi
 
