@@ -52,8 +52,18 @@ install_daed() {
     local daed_url
     daed_url=$(echo "$all_urls" | grep -i "${daed_arch}" | grep "\.${pkg_ext}$" | grep -iv "luci-app" | head -1)
 
+    # 如果精确匹配失败，尝试模糊匹配（去掉 _generic 后缀等）
+    if [ -z "$daed_url" ]; then
+        echo "[重试] 未找到 ${daed_arch} 的 ${pkg_ext} 包，尝试模糊匹配..."
+        local base_arch="${daed_arch%_generic}"
+        daed_url=$(echo "$all_urls" | grep -i "${base_arch}" | grep "\.${pkg_ext}$" | grep -iv "luci-app" | head -1)
+    fi
+
     if [ -z "$daed_url" ]; then
         echo "[错误] 未找到 ${arch} 架构的 Daed 核心包"
+        echo "[调试] 架构: ${arch}, daed_arch: ${daed_arch}, 扩展: ${pkg_ext}"
+        echo "[调试] 可用文件:"
+        echo "$all_urls"
         return 1
     fi
 
