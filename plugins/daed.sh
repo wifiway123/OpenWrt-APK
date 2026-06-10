@@ -126,101 +126,61 @@ install_daed() {
         download_file "$i18n_url" "${CACHE_DIR}/${plugin_name}/${i18n_name}" || echo "[警告] 中文包下载失败"
     fi
 
-    # ----- 安装 daed 核心 -----
-    echo "[安装] 安装 Daed 核心..."
+    # ----- 一次性安装所有包（apk 可以一起解析依赖）-----
+    echo "[安装] 安装 $tag ..."
 
     # 先清理可能残留的强制安装记录
     if [ "$is_apk" -eq 1 ]; then
-        apk del --force-broken-world daed 2>/dev/null || true
+        apk del --force-broken-world daed luci-app-daed luci-i18n-daed-zh-cn 2>/dev/null || true
     fi
 
-    # 策略 1: 正常安装
-    local daed_installed=0
+    # 收集所有 APK 路径
+    local pkgs="${CACHE_DIR}/${plugin_name}/${daed_name} ${CACHE_DIR}/${plugin_name}/${luci_name}"
+    [ -n "$i18n_name" ] && [ -f "${CACHE_DIR}/${plugin_name}/${i18n_name}" ] && pkgs="$pkgs ${CACHE_DIR}/${plugin_name}/${i18n_name}"
+
+    local install_ok=0
     if [ "$is_apk" -eq 1 ]; then
-        echo "[安装] apk add --allow-untrusted ${daed_name}..."
-        local install_output
-        install_output=$(apk add --allow-untrusted --force-overwrite "${CACHE_DIR}/${plugin_name}/${daed_name}" 2>&1)
-        if echo "$install_output" | grep -q "^OK"; then
-            if apk info -e daed 2>/dev/null; then
-                daed_installed=1
-            fi
-        fi
-        if [ "$daed_installed" -eq 0 ]; then
+        echo "[安装] apk add --allow-untrusted ..."
+        if apk add --allow-untrusted --force-overwrite $pkgs 2>/dev/null; then
+            install_ok=1
+            echo "[成功] 标准安装完成"
+        else
             echo "[提示] 标准安装失败，尝试强制安装..."
-            install_output=$(apk add --allow-untrusted --force-overwrite --force-broken-world "${CACHE_DIR}/${plugin_name}/${daed_name}" 2>&1)
-            echo "$install_output"
-            if apk info -e daed 2>/dev/null; then
-                daed_installed=1
-            fi
+            apk add --allow-untrusted --force-overwrite --force-broken-world $pkgs 2>/dev/null
+        fi
+
+        # 检查文件是否落地
+        if [ -f /usr/bin/daed ] || [ -f /usr/sbin/daed ]; then
+            echo "[成功] Daed 核心已安装: $(ls /usr/bin/daed /usr/sbin/daed 2>/dev/null)"
+        else
+            echo "[错误] Daed 核心文件未找到"
+            return 1
+        fi
+
+        if ls /usr/lib/lua/luci/controller/daed* >/dev/null 2>&1 || ls /usr/share/luci/menu.d/*daed* >/dev/null 2>&1; then
+            echo "[成功] LuCI 界面已安装"
+        else
+            echo "[错误] LuCI 界面文件未找到"
+            echo "[调试] 包中内容："
+            apk info "$daed_name" 2>/dev/null
+            apk info "$luci_name" 2>/dev/null
+            echo "[提示] 请尝试手动安装：apk add --allow-untrusted $pkgs"
+            return 1
         fi
     else
-        if opkg install --force-overwrite "${CACHE_DIR}/${plugin_name}/${daed_name}" 2>/dev/null; then
-            daed_installed=1
-        fi
-    fi
-
-    # 策略 2: 手动解压
-    if [ "$daed_installed" -eq 0 ]; then
-        local pkg_file="${CACHE_DIR}/${plugin_name}/${daed_name}"
-
-        echo "[手动] 分析包格式..."
-        local tmp_dir="/tmp/daed-extract-$$"
-        rm -rf "$tmp_dir"
-        mkdir -p "$tmp_dir"
-
-        # OpenWrt APK 实际上是 .tar.gz 格式
-        tar xzf "$pkg_file" -C "$tmp_dir" 2>/dev/null || {
-            # 可能 gzip 压缩但不是 tar
-            gzip -dc "$pkg_file" > "$tmp_dir/raw" 2>/dev/null || {
-                # 可能是 ZIP (Android APK 格式)
-                unzip -o -q "$pkg_file" -d "$tmp_dir" 2>/dev/null || true
-            }
-        }
-
-        # 检查并解压内容
-        if [ -f "$tmp_dir/data.tar.gz" ]; then
-            echo "[手动] 检测到 data.tar.gz (标准 OpenWrt 包格式)"
-            tar xzf "$tmp_dir/data.tar.gz" -C / 2>/dev/null && daed_installed=1
+        # opkg 安装
+        if opkg install --force-overwrite $pkgs 2>/dev/null; then
+            install_ok=1
+        else
+            opkg install --force-overwrite --force-depends $pkgs 2>/dev/null
         fi
 
-        if [ "$daed_installed" -eq 0 ] && [ -f "$tmp_dir/raw" ]; then
-            echo "[手动] 检测到 gzip 压缩数据，尝试解压到根目录..."
-            gzip -dc "$pkg_file" | tar xf - -C / 2>/dev/null || {
-                cp -f "$tmp_dir/raw" /usr/bin/daed 2>/dev/null && chmod +x /usr/bin/daed
-            }
+        if [ -f /usr/bin/daed ] || [ -f /usr/sbin/daed ]; then
+            echo "[成功] Daed 核心已安装"
+        else
+            echo "[错误] Daed 核心安装失败"
+            return 1
         fi
-
-        if [ "$daed_installed" -eq 0 ]; then
-            echo "[手动] 检查包内容..."
-            local pkg_contents
-            pkg_contents=$(ls -la "$tmp_dir/" 2>/dev/null | head -30)
-            echo "$pkg_contents"
-
-            # 直接解压到根目录试试
-            tar xzf "$pkg_file" -C / 2>/dev/null || true
-            gzip -dc "$pkg_file" | tar xf - -C / 2>/dev/null || true
-            unzip -o -q "$pkg_file" -d / 2>/dev/null || true
-        fi
-
-        # 运行 postinst 脚本
-        if [ -f "$tmp_dir/postinst" ]; then
-            chmod +x "$tmp_dir/postinst"
-            "$tmp_dir/postinst" 2>/dev/null || true
-        fi
-
-        rm -rf "$tmp_dir"
-
-        # 检查是否成功
-        if [ -f /usr/bin/daed ] || [ -f /usr/sbin/daed ] || [ -f /usr/local/bin/daed ]; then
-            daed_installed=1
-        fi
-    fi
-
-    if [ "$daed_installed" -eq 0 ]; then
-        echo "[错误] Daed 核心安装失败"
-        echo "[提示] 请确认系统版本与 daed 兼容，或尝试手动安装:"
-        echo "  apk add --allow-untrusted ${CACHE_DIR}/${plugin_name}/${daed_name}"
-        return 1
     fi
 
     # 验证二进制是否存在
@@ -230,113 +190,9 @@ install_daed() {
 
     if [ -n "$daed_bin" ]; then
         echo "[成功] Daed 核心已安装: $daed_bin"
+        chmod +x "$daed_bin" 2>/dev/null
     else
         echo "[警告] 未找到 daed 二进制文件，但包已解压"
-    fi
-
-    # ----- 安装 LuCI 界面 -----
-    echo "[安装] 安装 LuCI 界面..."
-
-    # 先清理残留
-    if [ "$is_apk" -eq 1 ]; then
-        apk del --force-broken-world luci-app-daed 2>/dev/null || true
-    fi
-
-    local luci_pkg="${CACHE_DIR}/${plugin_name}/${luci_name}"
-
-    if [ "$is_apk" -eq 1 ]; then
-        echo "[安装] apk add --allow-untrusted ${luci_name}..."
-        apk add --allow-untrusted --force-overwrite "$luci_pkg" 2>/dev/null || {
-            echo "[提示] 标准安装失败，尝试强制安装..."
-            apk add --allow-untrusted --force-overwrite --force-broken-world "$luci_pkg" 2>/dev/null || true
-        }
-    else
-        opkg install --force-overwrite "$luci_pkg" 2>/dev/null || \
-            opkg install --force-overwrite --force-depends "$luci_pkg" 2>/dev/null || true
-    fi
-
-    # 验证 LuCI 文件是否真正落地（apk --force-broken-world 可能假成功）
-    local luci_installed=0
-    if ls /usr/lib/lua/luci/controller/daed.lua >/dev/null 2>&1 || \
-       ls /usr/share/luci/menu.d/*daed* >/dev/null 2>&1 || \
-       ls /usr/share/rpcd/acl.d/*daed* >/dev/null 2>&1; then
-        luci_installed=1
-    fi
-
-    # 文件没落地，手动解压
-    if [ "$luci_installed" -eq 0 ]; then
-        echo "[手动] apk 安装未实际解压，手动提取..."
-        local tmp_dir="/tmp/daed-luci-extract-$$"
-        rm -rf "$tmp_dir"
-        mkdir -p "$tmp_dir"
-
-        tar xzf "$luci_pkg" -C "$tmp_dir" 2>/dev/null || \
-            gzip -dc "$luci_pkg" | tar xf - -C "$tmp_dir" 2>/dev/null || \
-            unzip -o -q "$luci_pkg" -d "$tmp_dir" 2>/dev/null || true
-
-        if [ -f "$tmp_dir/data.tar.gz" ]; then
-            echo "[手动] 找到 data.tar.gz，解压到根目录..."
-            tar xzf "$tmp_dir/data.tar.gz" -C / 2>/dev/null && luci_installed=1
-        fi
-
-        if [ "$luci_installed" -eq 0 ]; then
-            echo "[手动] 直接解压整个包到根目录..."
-            tar xzf "$luci_pkg" -C / 2>/dev/null || true
-            gzip -dc "$luci_pkg" | tar xf - -C / 2>/dev/null || true
-            unzip -o -q "$luci_pkg" -d / 2>/dev/null || true
-        fi
-
-        if [ -f "$tmp_dir/postinst" ]; then
-            chmod +x "$tmp_dir/postinst"
-            "$tmp_dir/postinst" 2>/dev/null || true
-        fi
-
-        rm -rf "$tmp_dir"
-
-        if ls /usr/lib/lua/luci/controller/daed.lua >/dev/null 2>&1 || \
-           ls /usr/share/luci/menu.d/*daed* >/dev/null 2>&1; then
-            luci_installed=1
-        fi
-    fi
-
-    if [ "$luci_installed" -eq 0 ]; then
-        echo "[错误] LuCI 界面安装失败"
-        echo "[调试] 请检查安装包格式:"
-        echo "  file ${luci_pkg}"
-        echo "  tar tzf ${luci_pkg} 2>/dev/null | head -20"
-        return 1
-    fi
-    echo "[成功] LuCI 界面安装完成"
-
-    # ----- 安装中文包 -----
-    if [ -n "$i18n_name" ] && [ -f "${CACHE_DIR}/${plugin_name}/${i18n_name}" ]; then
-        echo "[安装] 安装中文包..."
-        local i18n_pkg="${CACHE_DIR}/${plugin_name}/${i18n_name}"
-        if [ "$is_apk" -eq 1 ]; then
-            if apk add --allow-untrusted --force-overwrite "$i18n_pkg" 2>/dev/null; then
-                echo "[成功] 中文包安装完成"
-            elif apk add --allow-untrusted --force-overwrite --force-broken-world "$i18n_pkg" 2>/dev/null; then
-                echo "[成功] 中文包安装完成"
-            else
-                # 手动解压
-                local tmp_dir="/tmp/daed-i18n-extract-$$"
-                rm -rf "$tmp_dir"
-                mkdir -p "$tmp_dir"
-                tar xzf "$i18n_pkg" -C "$tmp_dir" 2>/dev/null || \
-                    gzip -dc "$i18n_pkg" | tar xf - -C "$tmp_dir" 2>/dev/null || \
-                    unzip -o -q "$i18n_pkg" -d "$tmp_dir" 2>/dev/null || true
-                [ -f "$tmp_dir/data.tar.gz" ] && tar xzf "$tmp_dir/data.tar.gz" -C / 2>/dev/null
-                tar xzf "$i18n_pkg" -C / 2>/dev/null || true
-                gzip -dc "$i18n_pkg" | tar xf - -C / 2>/dev/null || true
-                unzip -o -q "$i18n_pkg" -d / 2>/dev/null || true
-                rm -rf "$tmp_dir"
-                echo "[成功] 中文包已安装"
-            fi
-        else
-            opkg install --force-overwrite "$i18n_pkg" 2>/dev/null && echo "[成功] 中文包安装完成" || {
-                opkg install --force-overwrite --force-depends "$i18n_pkg" 2>/dev/null && echo "[成功] 中文包安装完成" || echo "[警告] 中文包安装失败"
-            }
-        fi
     fi
 
     # ----- 创建/启用服务 -----
