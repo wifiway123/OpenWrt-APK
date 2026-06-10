@@ -242,23 +242,30 @@ install_daed() {
         apk del --force-broken-world luci-app-daed 2>/dev/null || true
     fi
 
-    local luci_installed=0
+    local luci_pkg="${CACHE_DIR}/${plugin_name}/${luci_name}"
+
     if [ "$is_apk" -eq 1 ]; then
-        if apk add --allow-untrusted --force-overwrite "${CACHE_DIR}/${plugin_name}/${luci_name}" 2>/dev/null; then
-            luci_installed=1
-        else
+        echo "[安装] apk add --allow-untrusted ${luci_name}..."
+        apk add --allow-untrusted --force-overwrite "$luci_pkg" 2>/dev/null || {
             echo "[提示] 标准安装失败，尝试强制安装..."
-            apk add --allow-untrusted --force-overwrite --force-broken-world "${CACHE_DIR}/${plugin_name}/${luci_name}" 2>/dev/null && luci_installed=1
-        fi
+            apk add --allow-untrusted --force-overwrite --force-broken-world "$luci_pkg" 2>/dev/null || true
+        }
     else
-        opkg install --force-overwrite "${CACHE_DIR}/${plugin_name}/${luci_name}" 2>/dev/null && luci_installed=1 || \
-            opkg install --force-overwrite --force-depends "${CACHE_DIR}/${plugin_name}/${luci_name}" 2>/dev/null && luci_installed=1
+        opkg install --force-overwrite "$luci_pkg" 2>/dev/null || \
+            opkg install --force-overwrite --force-depends "$luci_pkg" 2>/dev/null || true
     fi
 
-    # 手动解压 LuCI（兼容多种格式）
+    # 验证 LuCI 文件是否真正落地（apk --force-broken-world 可能假成功）
+    local luci_installed=0
+    if ls /usr/lib/lua/luci/controller/daed.lua >/dev/null 2>&1 || \
+       ls /usr/share/luci/menu.d/*daed* >/dev/null 2>&1 || \
+       ls /usr/share/rpcd/acl.d/*daed* >/dev/null 2>&1; then
+        luci_installed=1
+    fi
+
+    # 文件没落地，手动解压
     if [ "$luci_installed" -eq 0 ]; then
-        echo "[手动] 解压 LuCI 包..."
-        local luci_pkg="${CACHE_DIR}/${plugin_name}/${luci_name}"
+        echo "[手动] apk 安装未实际解压，手动提取..."
         local tmp_dir="/tmp/daed-luci-extract-$$"
         rm -rf "$tmp_dir"
         mkdir -p "$tmp_dir"
@@ -268,10 +275,12 @@ install_daed() {
             unzip -o -q "$luci_pkg" -d "$tmp_dir" 2>/dev/null || true
 
         if [ -f "$tmp_dir/data.tar.gz" ]; then
+            echo "[手动] 找到 data.tar.gz，解压到根目录..."
             tar xzf "$tmp_dir/data.tar.gz" -C / 2>/dev/null && luci_installed=1
         fi
 
         if [ "$luci_installed" -eq 0 ]; then
+            echo "[手动] 直接解压整个包到根目录..."
             tar xzf "$luci_pkg" -C / 2>/dev/null || true
             gzip -dc "$luci_pkg" | tar xf - -C / 2>/dev/null || true
             unzip -o -q "$luci_pkg" -d / 2>/dev/null || true
@@ -284,7 +293,6 @@ install_daed() {
 
         rm -rf "$tmp_dir"
 
-        # 验证 LuCI 文件是否落地
         if ls /usr/lib/lua/luci/controller/daed.lua >/dev/null 2>&1 || \
            ls /usr/share/luci/menu.d/*daed* >/dev/null 2>&1; then
             luci_installed=1
@@ -293,6 +301,9 @@ install_daed() {
 
     if [ "$luci_installed" -eq 0 ]; then
         echo "[错误] LuCI 界面安装失败"
+        echo "[调试] 请检查安装包格式:"
+        echo "  file ${luci_pkg}"
+        echo "  tar tzf ${luci_pkg} 2>/dev/null | head -20"
         return 1
     fi
     echo "[成功] LuCI 界面安装完成"
