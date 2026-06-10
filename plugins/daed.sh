@@ -178,6 +178,44 @@ install_daed() {
     echo "[修复] 修复依赖..."
     fix_dependencies
 
+    echo "[启用] 启用 Daed 服务..."
+    if [ -f /etc/init.d/daed ]; then
+        /etc/init.d/daed enable 2>/dev/null
+        /etc/init.d/daed start 2>/dev/null
+        echo "[成功] Daed 服务已启用"
+    else
+        echo "[警告] 未找到 Daed 服务脚本，尝试创建..."
+        cat > /etc/init.d/daed << 'INITEOF'
+#!/bin/sh /etc/rc.common
+
+START=50
+STOP=90
+
+USE_PROCD=1
+
+start_service() {
+    procd_open_instance
+    procd_set_param command /usr/bin/daed
+    procd_set_param respawn
+    procd_close_instance
+}
+
+stop_service() {
+    killall daed 2>/dev/null
+}
+
+service_triggers() {
+    procd_add_reload_trigger "daed"
+}
+INITEOF
+        chmod +x /etc/init.d/daed
+        /etc/init.d/daed enable 2>/dev/null
+        echo "[成功] Daed 服务脚本已创建并启用"
+    fi
+
+    echo "[清理] 强制刷新 LuCI 缓存..."
+    rm -rf /tmp/luci-* /tmp/luci-modulecache* /tmp/luci-indexcache* /tmp/luci-sessions 2>/dev/null
+
     echo "[重启] 重启 LuCI..."
     restart_luci
 
