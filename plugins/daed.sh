@@ -48,15 +48,15 @@ install_daed() {
     local all_urls
     all_urls=$(get_download_urls "$release_json")
 
-    # 查找 daed 核心包
+    # 查找 daed 核心包（匹配文件名以 daed 开头，不匹配路径中的 luci-app-daed）
     local daed_url
-    daed_url=$(echo "$all_urls" | grep -i "${daed_arch}" | grep "\.${pkg_ext}$" | grep -iv "luci-app" | head -1)
+    daed_url=$(echo "$all_urls" | grep -E "/daed[-_][^/]+${daed_arch}[^/]*\.${pkg_ext}$" | head -1)
 
     # 如果精确匹配失败，尝试模糊匹配（去掉 _generic 后缀等）
     if [ -z "$daed_url" ]; then
         echo "[重试] 未找到 ${daed_arch} 的 ${pkg_ext} 包，尝试模糊匹配..."
         local base_arch="${daed_arch%_generic}"
-        daed_url=$(echo "$all_urls" | grep -i "${base_arch}" | grep "\.${pkg_ext}$" | grep -iv "luci-app" | head -1)
+        daed_url=$(echo "$all_urls" | grep -E "/daed[-_][^/]+${base_arch}[^/]*\.${pkg_ext}$" | head -1)
     fi
 
     if [ -z "$daed_url" ]; then
@@ -67,9 +67,9 @@ install_daed() {
         return 1
     fi
 
-    # 查找 luci-app-daed 界面包
+    # 查找 luci-app-daed 界面包（匹配文件名以 luci-app-daed 开头）
     local luci_url
-    luci_url=$(echo "$all_urls" | grep -i "luci-app-daed" | grep "\.${pkg_ext}$" | head -1)
+    luci_url=$(echo "$all_urls" | grep -E "/luci-app-daed[-_][^/]*\.${pkg_ext}$" | head -1)
 
     if [ -z "$luci_url" ]; then
         echo "[错误] 未找到 luci-app-daed 界面包"
