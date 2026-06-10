@@ -164,7 +164,7 @@ install_daed() {
             echo "[提示] 文件仍未落地，使用 apk extract 手动解压..."
             for pkg in $pkgs; do
                 echo "[手动] 解压 $(basename $pkg)..."
-                apk extract --allow-untrusted "$pkg" 2>/dev/null || echo "[警告] 解压 $(basename $pkg) 失败"
+                apk extract --allow-untrusted --root / "$pkg" 2>/dev/null || echo "[警告] 解压 $(basename $pkg) 失败"
             done
         fi
 
