@@ -38,9 +38,6 @@ download_file "${RAW_URL}/store.sh" "${INSTALL_DIR}/store.sh" && echo "[下载] 
 download_file "${RAW_URL}/core/network.sh" "${INSTALL_DIR}/core/network.sh" && echo "[下载] core/network.sh" || { echo "[错误] core/network.sh 下载失败"; exit 1; }
 download_file "${RAW_URL}/core/github.sh" "${INSTALL_DIR}/core/github.sh" && echo "[下载] core/github.sh" || { echo "[错误] core/github.sh 下载失败"; exit 1; }
 download_file "${RAW_URL}/core/install.sh" "${INSTALL_DIR}/core/install.sh" && echo "[下载] core/install.sh" || { echo "[错误] core/install.sh 下载失败"; exit 1; }
-download_file "${RAW_URL}/core/version.sh" "${INSTALL_DIR}/core/version.sh" && echo "[下载] core/version.sh" || { echo "[错误] core/version.sh 下载失败"; exit 1; }
-download_file "${RAW_URL}/core/registry.sh" "${INSTALL_DIR}/core/registry.sh" && echo "[下载] core/registry.sh" || { echo "[错误] core/registry.sh 下载失败"; exit 1; }
-download_file "${RAW_URL}/core/manager.sh" "${INSTALL_DIR}/core/manager.sh" && echo "[下载] core/manager.sh" || { echo "[错误] core/manager.sh 下载失败"; exit 1; }
 download_file "${RAW_URL}/core/ui.sh" "${INSTALL_DIR}/core/ui.sh" && echo "[下载] core/ui.sh" || { echo "[错误] core/ui.sh 下载失败"; exit 1; }
 download_file "${RAW_URL}/plugins/openclash.sh" "${INSTALL_DIR}/plugins/openclash.sh" && echo "[下载] plugins/openclash.sh" || { echo "[错误] plugins/openclash.sh 下载失败"; exit 1; }
 download_file "${RAW_URL}/plugins/mosdns.sh" "${INSTALL_DIR}/plugins/mosdns.sh" && echo "[下载] plugins/mosdns.sh" || { echo "[错误] plugins/mosdns.sh 下载失败"; exit 1; }
