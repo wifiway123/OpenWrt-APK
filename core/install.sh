@@ -1,7 +1,8 @@
 #!/bin/sh
 # core/install.sh - APK 安装模块
 
-CACHE_DIR="/root/apk-store/cache"
+# 使用 /tmp（内存文件系统）减少 flash 写入和空间占用
+CACHE_DIR="/tmp/apk-store-cache"
 
 detect_arch() {
     local arch

@@ -97,6 +97,7 @@ manager_install_apk() {
     cd "$download_dir" || return 1
     if apk add --allow-untrusted --force-overwrite *.apk 2>/dev/null; then
         echo "[成功] APK 安装完成"
+        rm -rf "$download_dir"  # 装完即删，腾出空间
     else
         echo "[错误] APK 安装失败"
         return 1
@@ -181,6 +182,7 @@ manager_install_tarball() {
     echo "[安装] 正在安装 $apk_count 个 APK..."
     if apk add --allow-untrusted --force-overwrite $apk_files 2>/dev/null; then
         echo "[成功] 安装完成"
+        rm -rf "$download_dir"  # 装完即删，腾出空间
     else
         echo "[错误] 安装失败"
         return 1
@@ -294,4 +296,42 @@ manager_reinstall() {
 
     cleanup_old_cache
     $install_func
+}
+
+# ============================================================
+# 并行更新：同时更新多个插件（默认同时 2 个）
+# 用法: manager_update_parallel "openclash mosdns lucky" 2
+# ============================================================
+manager_update_parallel() {
+    local plugin_ids="$1"
+    local max_concurrent="${2:-2}"
+
+    local count=0
+
+    for plugin_id in $plugin_ids; do
+        (
+            case "$plugin_id" in
+                openclash)   update_openclash ;;
+                mosdns)      update_mosdns ;;
+                adguardhome) update_adguardhome ;;
+                docker)      update_docker ;;
+                aurora)      update_luci_theme_aurora ;;
+                lucky)       update_lucky ;;
+                argon)       update_luci_theme_argon ;;
+                taskplan)    update_taskplan ;;
+                passwall2)   update_passwall2 ;;
+                smartdns)    update_smartdns ;;
+                daed)        update_daed ;;
+            esac
+        ) &
+        count=$((count + 1))
+
+        # 达到并发上限时等待一批
+        if [ "$count" -ge "$max_concurrent" ]; then
+            wait
+            count=0
+        fi
+    done
+    # 等待剩余任务完成
+    wait
 }

@@ -6,10 +6,27 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "${SCRIPT_DIR}/core/network.sh"
 . "${SCRIPT_DIR}/core/github.sh"
 . "${SCRIPT_DIR}/core/install.sh"
-. "${SCRIPT_DIR}/core/version.sh"
-. "${SCRIPT_DIR}/core/registry.sh"
-. "${SCRIPT_DIR}/core/manager.sh"
 . "${SCRIPT_DIR}/core/ui.sh"
+
+# 新核心模块（版本管理 + 注册表 + 统一引擎）
+# 如果不存在，说明是旧版本升级，需重新运行 install.sh 或 update_store
+if [ ! -f "${SCRIPT_DIR}/core/version.sh" ] || [ ! -f "${SCRIPT_DIR}/core/registry.sh" ] || [ ! -f "${SCRIPT_DIR}/core/manager.sh" ]; then
+    echo ""
+    echo "================================"
+    echo " 检测到脚本版本不完整"
+    echo "================================"
+    echo ""
+    echo "请选择以下方式修复："
+    echo "  1. 在菜单中选择 [000] 更新脚本"
+    echo "  2. 重新运行一键安装命令"
+    echo ""
+    printf "按回车键继续..."
+    read -r dummy </dev/tty 2>/dev/null || read -r dummy
+fi
+
+[ -f "${SCRIPT_DIR}/core/version.sh" ]  && . "${SCRIPT_DIR}/core/version.sh"
+[ -f "${SCRIPT_DIR}/core/registry.sh" ]  && . "${SCRIPT_DIR}/core/registry.sh"
+[ -f "${SCRIPT_DIR}/core/manager.sh" ]   && . "${SCRIPT_DIR}/core/manager.sh"
 
 . "${SCRIPT_DIR}/plugins/openclash.sh"
 . "${SCRIPT_DIR}/plugins/mosdns.sh"
@@ -265,20 +282,13 @@ update_all() {
     echo " 更新全部插件"
     echo "================================"
     echo ""
+    echo "[并行] 同时更新 2 个插件，节省等待时间"
+    echo ""
 
     cleanup_old_cache
 
-    update_openclash
-    update_mosdns
-    update_adguardhome
-    update_docker
-    update_luci_theme_aurora
-    update_lucky
-    update_luci_theme_argon
-    update_taskplan
-    update_passwall2
-    update_smartdns
-    update_daed
+    # 并行更新所有插件（同时 2 个）
+    manager_update_parallel "$(all_plugin_ids)" 2
 
     echo ""
     echo "================================"
@@ -500,7 +510,8 @@ init() {
     echo "[架构] $arch"
 
     init_cache
-    init_version_db
+    # 如果版本管理模块已加载则初始化
+    command -v init_version_db >/dev/null 2>&1 && init_version_db
     echo "[初始化] 缓存目录就绪"
     echo ""
 }
