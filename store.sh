@@ -18,7 +18,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "${SCRIPT_DIR}/plugins/taskplan.sh"
 . "${SCRIPT_DIR}/plugins/passwall2.sh"
 . "${SCRIPT_DIR}/plugins/daed.sh"
-. "${SCRIPT_DIR}/plugins/passwall.sh"
+[ -f "${SCRIPT_DIR}/plugins/passwall.sh" ] && . "${SCRIPT_DIR}/plugins/passwall.sh"
 [ -f "${SCRIPT_DIR}/plugins/smartdns.sh" ] && . "${SCRIPT_DIR}/plugins/smartdns.sh"
 
 TTY="/dev/tty"
@@ -357,7 +357,7 @@ update_store() {
         wget -q --timeout=30 -O "${tmp_dir}/core/${f}" "${raw_url}/core/${f}" 2>/dev/null || true
     done
 
-    for f in openclash.sh mosdns.sh adguardhome.sh docker.sh luci-theme-aurora.sh lucky.sh luci-theme-argon.sh taskplan.sh passwall2.sh daed.sh smartdns.sh; do
+    for f in openclash.sh mosdns.sh adguardhome.sh docker.sh luci-theme-aurora.sh lucky.sh luci-theme-argon.sh taskplan.sh passwall2.sh daed.sh smartdns.sh passwall.sh; do
         wget -q --timeout=30 -O "${tmp_dir}/plugins/${f}" "${raw_url}/plugins/${f}" 2>/dev/null || true
     done
 
@@ -378,7 +378,7 @@ update_store() {
         cp -f "${tmp_dir}/core/${f}" "${SCRIPT_DIR}/core/${f}" 2>/dev/null || { echo "[错误] core/${f} 复制失败"; rm -rf "$tmp_dir"; sleep 2; return; }
     done
 
-    for f in openclash.sh mosdns.sh adguardhome.sh docker.sh luci-theme-aurora.sh lucky.sh luci-theme-argon.sh taskplan.sh passwall2.sh daed.sh smartdns.sh; do
+    for f in openclash.sh mosdns.sh adguardhome.sh docker.sh luci-theme-aurora.sh lucky.sh luci-theme-argon.sh taskplan.sh passwall2.sh daed.sh smartdns.sh passwall.sh; do
         cp -f "${tmp_dir}/plugins/${f}" "${SCRIPT_DIR}/plugins/${f}" 2>/dev/null || { echo "[错误] plugins/${f} 复制失败"; rm -rf "$tmp_dir"; sleep 2; return; }
     done
 
