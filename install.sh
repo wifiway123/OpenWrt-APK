@@ -3,7 +3,6 @@
 # 使用方式: wget -O- https://raw.githubusercontent.com/chengege666/OpenWrt-APK/main/install.sh | sh
 
 REPO_URL="https://github.com/chengege666/OpenWrt-APK"
-RAW_URL="https://raw.githubusercontent.com/chengege666/OpenWrt-APK/main"
 INSTALL_DIR="/root/apk-store"
 
 echo "================================"
@@ -23,33 +22,34 @@ mkdir -p "$INSTALL_DIR"
 mkdir -p "${INSTALL_DIR}/core"
 mkdir -p "${INSTALL_DIR}/plugins"
 
-download_file() {
-    local url="$1"
-    local output="$2"
-    if wget -q --timeout=30 -O "$output" "$url" 2>/dev/null; then
-        if [ -f "$output" ] && [ -s "$output" ]; then
-            return 0
-        fi
-    fi
-    return 1
-}
+TMP_DIR="/tmp/apk-store-install"
+rm -rf "$TMP_DIR"
+mkdir -p "$TMP_DIR"
 
-download_file "${RAW_URL}/store.sh" "${INSTALL_DIR}/store.sh" && echo "[下载] store.sh" || { echo "[错误] store.sh 下载失败"; exit 1; }
-download_file "${RAW_URL}/core/network.sh" "${INSTALL_DIR}/core/network.sh" && echo "[下载] core/network.sh" || { echo "[错误] core/network.sh 下载失败"; exit 1; }
-download_file "${RAW_URL}/core/github.sh" "${INSTALL_DIR}/core/github.sh" && echo "[下载] core/github.sh" || { echo "[错误] core/github.sh 下载失败"; exit 1; }
-download_file "${RAW_URL}/core/install.sh" "${INSTALL_DIR}/core/install.sh" && echo "[下载] core/install.sh" || { echo "[错误] core/install.sh 下载失败"; exit 1; }
-download_file "${RAW_URL}/core/ui.sh" "${INSTALL_DIR}/core/ui.sh" && echo "[下载] core/ui.sh" || { echo "[错误] core/ui.sh 下载失败"; exit 1; }
-download_file "${RAW_URL}/plugins/openclash.sh" "${INSTALL_DIR}/plugins/openclash.sh" && echo "[下载] plugins/openclash.sh" || { echo "[错误] plugins/openclash.sh 下载失败"; exit 1; }
-download_file "${RAW_URL}/plugins/mosdns.sh" "${INSTALL_DIR}/plugins/mosdns.sh" && echo "[下载] plugins/mosdns.sh" || { echo "[错误] plugins/mosdns.sh 下载失败"; exit 1; }
-download_file "${RAW_URL}/plugins/adguardhome.sh" "${INSTALL_DIR}/plugins/adguardhome.sh" && echo "[下载] plugins/adguardhome.sh" || { echo "[错误] plugins/adguardhome.sh 下载失败"; exit 1; }
-download_file "${RAW_URL}/plugins/docker.sh" "${INSTALL_DIR}/plugins/docker.sh" && echo "[下载] plugins/docker.sh" || { echo "[错误] plugins/docker.sh 下载失败"; exit 1; }
-download_file "${RAW_URL}/plugins/luci-theme-aurora.sh" "${INSTALL_DIR}/plugins/luci-theme-aurora.sh" && echo "[下载] plugins/luci-theme-aurora.sh" || { echo "[错误] plugins/luci-theme-aurora.sh 下载失败"; exit 1; }
-download_file "${RAW_URL}/plugins/lucky.sh" "${INSTALL_DIR}/plugins/lucky.sh" && echo "[下载] plugins/lucky.sh" || { echo "[错误] plugins/lucky.sh 下载失败"; exit 1; }
-download_file "${RAW_URL}/plugins/luci-theme-argon.sh" "${INSTALL_DIR}/plugins/luci-theme-argon.sh" && echo "[下载] plugins/luci-theme-argon.sh" || { echo "[错误] plugins/luci-theme-argon.sh 下载失败"; exit 1; }
-download_file "${RAW_URL}/plugins/taskplan.sh" "${INSTALL_DIR}/plugins/taskplan.sh" && echo "[下载] plugins/taskplan.sh" || { echo "[错误] plugins/taskplan.sh 下载失败"; exit 1; }
-download_file "${RAW_URL}/plugins/passwall2.sh" "${INSTALL_DIR}/plugins/passwall2.sh" && echo "[下载] plugins/passwall2.sh" || { echo "[错误] plugins/passwall2.sh 下载失败"; exit 1; }
-download_file "${RAW_URL}/plugins/daed.sh" "${INSTALL_DIR}/plugins/daed.sh" && echo "[下载] plugins/daed.sh" || { echo "[错误] plugins/daed.sh 下载失败"; exit 1; }
-download_file "${RAW_URL}/plugins/smartdns.sh" "${INSTALL_DIR}/plugins/smartdns.sh" && echo "[下载] plugins/smartdns.sh" || { echo "[错误] plugins/smartdns.sh 下载失败"; exit 1; }
+echo "[下载] 正在下载仓库压缩包..."
+if ! wget -q --timeout=60 -O "${TMP_DIR}/repo.zip" "${REPO_URL}/archive/main.zip" 2>/dev/null; then
+    echo "[错误] 仓库下载失败"
+    exit 1
+fi
+
+echo "[解压] 正在解压..."
+if ! unzip -o -q "${TMP_DIR}/repo.zip" -d "$TMP_DIR" 2>/dev/null; then
+    echo "[错误] 解压失败"
+    exit 1
+fi
+
+SRC_DIR="${TMP_DIR}/OpenWrt-APK-main"
+
+cp -f "${SRC_DIR}/store.sh" "${INSTALL_DIR}/store.sh"
+cp -rf "${SRC_DIR}/core/"* "${INSTALL_DIR}/core/"
+cp -rf "${SRC_DIR}/plugins/"* "${INSTALL_DIR}/plugins/"
+
+rm -rf "$TMP_DIR"
+
+if [ ! -f "${INSTALL_DIR}/store.sh" ]; then
+    echo "[错误] 核心文件缺失，安装失败"
+    exit 1
+fi
 
 chmod +x "${INSTALL_DIR}/store.sh"
 

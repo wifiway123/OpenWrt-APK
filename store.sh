@@ -318,37 +318,31 @@ update_store() {
 
     local tmp_dir="/tmp/apk-store-update"
     rm -rf "$tmp_dir"
-    mkdir -p "$tmp_dir/core" "$tmp_dir/plugins"
-
-    local commit_sha
-    commit_sha=$(get_latest_commit_sha "chengege666" "OpenWrt-APK" "main")
-
-    local ref="main"
-    if [ -n "$commit_sha" ] && [ ${#commit_sha} -eq 40 ]; then
-        ref="$commit_sha"
-        echo "[SHA] $commit_sha"
-    else
-        echo "[提示] 获取最新提交失败，使用 main 分支"
-    fi
+    mkdir -p "$tmp_dir"
 
     echo "[下载] 正在获取最新版本..."
 
-    local raw_url="https://raw.githubusercontent.com/chengege666/OpenWrt-APK/${ref}"
-    local fail=0
+    local zip_url="https://github.com/chengege666/OpenWrt-APK/archive/main.zip"
 
-    wget -q --timeout=30 -O "${tmp_dir}/store.sh" "${raw_url}/store.sh" 2>/dev/null || fail=1
-    wget -q --timeout=30 -O "${tmp_dir}/install.sh" "${raw_url}/install.sh" 2>/dev/null || true
+    if ! download_file "$zip_url" "${tmp_dir}/repo.zip"; then
+        echo "[错误] 仓库下载失败"
+        rm -rf "$tmp_dir"
+        sleep 2
+        return
+    fi
 
-    for f in network.sh github.sh install.sh ui.sh; do
-        wget -q --timeout=30 -O "${tmp_dir}/core/${f}" "${raw_url}/core/${f}" 2>/dev/null || true
-    done
+    echo "[解压] 正在解压..."
+    if ! unzip -o -q "${tmp_dir}/repo.zip" -d "$tmp_dir" 2>/dev/null; then
+        echo "[错误] 解压失败"
+        rm -rf "$tmp_dir"
+        sleep 2
+        return
+    fi
 
-    for f in openclash.sh mosdns.sh adguardhome.sh docker.sh luci-theme-aurora.sh lucky.sh luci-theme-argon.sh taskplan.sh passwall2.sh daed.sh smartdns.sh; do
-        wget -q --timeout=30 -O "${tmp_dir}/plugins/${f}" "${raw_url}/plugins/${f}" 2>/dev/null || true
-    done
+    local src_dir="${tmp_dir}/OpenWrt-APK-main"
 
-    if [ "$fail" -eq 1 ] || [ ! -s "${tmp_dir}/store.sh" ]; then
-        echo "[错误] 核心文件下载失败"
+    if [ ! -f "${src_dir}/store.sh" ]; then
+        echo "[错误] 核心文件缺失，更新失败"
         rm -rf "$tmp_dir"
         sleep 2
         return
@@ -356,17 +350,10 @@ update_store() {
 
     echo "[安装] 正在替换文件..."
 
-    for f in store.sh install.sh; do
-        cp -f "${tmp_dir}/${f}" "${SCRIPT_DIR}/${f}" 2>/dev/null || { echo "[错误] ${f} 复制失败"; rm -rf "$tmp_dir"; sleep 2; return; }
-    done
-
-    for f in network.sh github.sh install.sh ui.sh; do
-        cp -f "${tmp_dir}/core/${f}" "${SCRIPT_DIR}/core/${f}" 2>/dev/null || { echo "[错误] core/${f} 复制失败"; rm -rf "$tmp_dir"; sleep 2; return; }
-    done
-
-    for f in openclash.sh mosdns.sh adguardhome.sh docker.sh luci-theme-aurora.sh lucky.sh luci-theme-argon.sh taskplan.sh passwall2.sh daed.sh smartdns.sh; do
-        cp -f "${tmp_dir}/plugins/${f}" "${SCRIPT_DIR}/plugins/${f}" 2>/dev/null || { echo "[错误] plugins/${f} 复制失败"; rm -rf "$tmp_dir"; sleep 2; return; }
-    done
+    cp -f "${src_dir}/store.sh" "${SCRIPT_DIR}/store.sh"
+    cp -f "${src_dir}/install.sh" "${SCRIPT_DIR}/install.sh" 2>/dev/null || true
+    cp -rf "${src_dir}/core/"* "${SCRIPT_DIR}/core/"
+    cp -rf "${src_dir}/plugins/"* "${SCRIPT_DIR}/plugins/"
 
     chmod +x "${SCRIPT_DIR}/store.sh" "${SCRIPT_DIR}/core/"*.sh "${SCRIPT_DIR}/plugins/"*.sh 2>/dev/null
 
