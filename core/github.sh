@@ -7,14 +7,12 @@
 _fetch_github_api() {
     local url="$1"
     local desc="$2"
-    # GitHub API 要求带 User-Agent,否则可能被拒
-    local ua="--header=User-Agent: apk-store"
 
     # 有镜像则走镜像
     if [ -n "$GITHUB_MIRROR" ]; then
         local proxied_url="${GITHUB_MIRROR%/}/${url}"
         local response
-        response=$(wget -q --timeout=15 $ua -O- "$proxied_url" 2>/dev/null)
+        response=$(wget -q --timeout=15 --header="User-Agent: apk-store" -O- "$proxied_url" 2>/dev/null)
         # 校验: 非空 + 首字符是 { 才是合法 JSON
         if [ -n "$response" ] && echo "$response" | head -c 1 | grep -q '{'; then
             echo "$response"
@@ -25,7 +23,7 @@ _fetch_github_api() {
 
     # 直连
     local direct_resp
-    direct_resp=$(wget -q --timeout=15 $ua -O- "$url" 2>/dev/null)
+    direct_resp=$(wget -q --timeout=15 --header="User-Agent: apk-store" -O- "$url" 2>/dev/null)
     if [ -n "$direct_resp" ] && echo "$direct_resp" | head -c 1 | grep -q '{'; then
         echo "$direct_resp"
         return 0
