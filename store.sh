@@ -10,7 +10,6 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 . "${SCRIPT_DIR}/plugins/openclash.sh"
 . "${SCRIPT_DIR}/plugins/mosdns.sh"
-. "${SCRIPT_DIR}/plugins/adguardhome.sh"
 . "${SCRIPT_DIR}/plugins/docker.sh"
 . "${SCRIPT_DIR}/plugins/luci-theme-aurora.sh"
 . "${SCRIPT_DIR}/plugins/lucky.sh"
@@ -82,38 +81,34 @@ install_plugin_menu() {
                 wait_for_enter
                 ;;
             3)
-                install_adguardhome
-                wait_for_enter
-                ;;
-            4)
                 install_docker
                 wait_for_enter
                 ;;
-            5)
+            4)
                 install_luci_theme_aurora
                 wait_for_enter
                 ;;
-            6)
+            5)
                 install_lucky
                 wait_for_enter
                 ;;
-            7)
+            6)
                 install_luci_theme_argon
                 wait_for_enter
                 ;;
-            8)
+            7)
                 install_taskplan
                 wait_for_enter
                 ;;
-            9)
+            8)
                 install_passwall2
                 wait_for_enter
                 ;;
-            10)
+            9)
                 install_smartdns
                 wait_for_enter
                 ;;
-            11)
+            10)
                 install_daed
                 wait_for_enter
                 ;;
@@ -144,38 +139,34 @@ uninstall_menu() {
                 wait_for_enter
                 ;;
             3)
-                uninstall_adguardhome
-                wait_for_enter
-                ;;
-            4)
                 uninstall_docker
                 wait_for_enter
                 ;;
-            5)
+            4)
                 uninstall_luci_theme_aurora
                 wait_for_enter
                 ;;
-            6)
+            5)
                 uninstall_lucky
                 wait_for_enter
                 ;;
-            7)
+            6)
                 uninstall_luci_theme_argon
                 wait_for_enter
                 ;;
-            8)
+            7)
                 uninstall_taskplan
                 wait_for_enter
                 ;;
-            9)
+            8)
                 uninstall_passwall2
                 wait_for_enter
                 ;;
-            10)
+            9)
                 uninstall_smartdns
                 wait_for_enter
                 ;;
-            11)
+            10)
                 uninstall_daed
                 wait_for_enter
                 ;;
@@ -206,42 +197,38 @@ update_menu() {
                 wait_for_enter
                 ;;
             3)
-                update_adguardhome
-                wait_for_enter
-                ;;
-            4)
                 update_docker
                 wait_for_enter
                 ;;
-            5)
+            4)
                 update_luci_theme_aurora
                 wait_for_enter
                 ;;
-            6)
+            5)
                 update_lucky
                 wait_for_enter
                 ;;
-            7)
+            6)
                 update_luci_theme_argon
                 wait_for_enter
                 ;;
-            8)
+            7)
                 update_taskplan
                 wait_for_enter
                 ;;
-            9)
+            8)
                 update_passwall2
                 wait_for_enter
                 ;;
-            10)
+            9)
                 update_smartdns
                 wait_for_enter
                 ;;
-            11)
+            10)
                 update_daed
                 wait_for_enter
                 ;;
-            12)
+            11)
                 update_all
                 wait_for_enter
                 ;;
@@ -267,7 +254,6 @@ update_all() {
 
     update_openclash
     update_mosdns
-    update_adguardhome
     update_docker
     update_luci_theme_aurora
     update_lucky
