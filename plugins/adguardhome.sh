@@ -57,6 +57,7 @@ download_adguardhome_core() {
     local plugin_name="adguardhome"
     local owner="AdGuardTeam"
     local repo="AdGuardHome"
+    local core_name="AdGuardHome_linux_amd64.tar.gz"
 
     local release_json
     release_json=$(get_latest_release "$owner" "$repo") || return 1
@@ -65,24 +66,13 @@ download_adguardhome_core() {
     tag=$(get_release_tag "$release_json")
     echo "[核心] 最新版本: $tag"
 
-    local all_urls
-    all_urls=$(get_download_urls "$release_json")
-
-    # x86_64 对应 amd64
-    local core_url
-    core_url=$(echo "$all_urls" | grep "AdGuardHome_linux_amd64\.tar\.gz$" | head -1)
-
-    if [ -z "$core_url" ]; then
-        echo "[错误] 未找到 linux_amd64 架构核心"
-        return 1
-    fi
+    # 直接构造下载链接,避免 BusyBox sed 解析复杂 JSON 不可靠
+    local core_url="https://github.com/AdguardTeam/AdGuardHome/releases/download/${tag}/${core_name}"
 
     local download_dir="${CACHE_DIR}/${plugin_name}"
     rm -rf "$download_dir"
     mkdir -p "$download_dir"
 
-    local core_name
-    core_name=$(basename "$core_url")
     echo "[下载] $core_name"
     if ! download_file "$core_url" "${download_dir}/${core_name}"; then
         echo "[错误] 核心下载失败"
