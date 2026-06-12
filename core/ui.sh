@@ -61,8 +61,8 @@ show_uninstall_menu() {
     echo " 卸载插件"
     echo "================================"
     echo ""
-    echo "1.  卸载 OpenClash"
-    echo "2.  卸载 MosDNS"
+    echo "1.   卸载 OpenClash"
+    echo "2.   卸载 MosDNS"
     echo "3.   卸载 Docker"
     echo "4.   卸载 Aurora 主题"
     echo "5.   卸载 Lucky"
@@ -70,9 +70,9 @@ show_uninstall_menu() {
     echo "7.   卸载 TaskPlan"
     echo "8.   卸载 PassWall2"
     echo "9.   卸载 SmartDNS"
-    echo "10. 卸载 Daed"
+    echo "10.  卸载 Daed"
     echo "11.  卸载 AdGuardHome"
-    echo "0.  返回上级"
+    echo "0.   返回上级"
     echo ""
 }
 
