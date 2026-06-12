@@ -81,8 +81,8 @@ show_update_menu() {
     echo " 更新插件"
     echo "================================"
     echo ""
-    echo "1.  更新 OpenClash"
-    echo "2.  更新 MosDNS"
+    echo "1.   更新 OpenClash"
+    echo "2.   更新 MosDNS"
     echo "3.   更新 Docker"
     echo "4.   更新 Aurora 主题"
     echo "5.   更新 Lucky"
@@ -93,7 +93,7 @@ show_update_menu() {
     echo "10.  更新 Daed"
     echo "11.  更新 AdGuardHome"
     echo "12.  更新全部"
-    echo "0.  返回上级"
+    echo "0.   返回上级"
     echo ""
 }
 
