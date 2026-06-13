@@ -71,7 +71,7 @@ OpenWrt-APK/
 
 短链接
 ```
-bash <(curl -sL lj.1231818.xyz/vpsx
+bash <(curl -sL https://lj.1231818.xyz/kg)
  ```
  
 ```sh
