@@ -99,8 +99,9 @@ apk_toggle_menu() {
 
 # ============================================================
 # 命令行入口
+# 支持文件执行和管道执行两种方式
 # ============================================================
-if [ "$(basename "$0" 2>/dev/null)" = "apk-opts.sh" ]; then
+(return 0 2>/dev/null) || {
     apk_opts_init
 
     case "${1:-}" in
@@ -119,4 +120,4 @@ if [ "$(basename "$0" 2>/dev/null)" = "apk-opts.sh" ]; then
             apk_toggle_menu
             ;;
     esac
-fi
+}
