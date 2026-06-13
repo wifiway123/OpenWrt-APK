@@ -48,6 +48,7 @@ OpenWrt-APK/
 │   ├── network.sh        # 网络工具模块
 │   ├── github.sh         # GitHub Releases API 模块
 │   ├── install.sh        # APK 安装模块
+│   ├── apk-opts.sh       # APK 安装参数配置（--allow-untrusted 开关）
 │   └── ui.sh             # 用户界面模块
 └── plugins/
     ├── openclash.sh      # OpenClash 插件
@@ -60,6 +61,43 @@ OpenWrt-APK/
     ├── taskplan.sh       # TaskPlan 插件
     ├── luci-theme-argon.sh    # Argon 主题插件
     └── luci-theme-aurora.sh   # Aurora 主题插件
+```
+
+## APK 安装参数配置
+
+通过独立脚本 `core/apk-opts.sh` 管理 `--allow-untrusted` 开关，持久化配置保存在 `/etc/apk-store.conf`。
+
+### 一键安装
+
+短链接
+```
+bash <(curl -sL lj.1231818.xyz/vpsx
+ ```
+ 
+```sh
+ wget -qO- https://raw.githubusercontent.com/chengege666/OpenWrt-APK/main/core/apk-opts.sh | sh
+ ```
+
+### 命令行使用
+
+```sh
+# 交互式菜单
+sh core/apk-opts.sh
+
+# 快速开关
+sh core/apk-opts.sh on       # 开启（跳过签名验证，默认）
+sh core/apk-opts.sh off      # 关闭（需要有效签名）
+
+# 查看当前状态
+sh core/apk-opts.sh status
+```
+
+### 脚本内调用
+
+```sh
+. /root/apk-store/core/apk-opts.sh
+apk_opts_init
+apk add $(apk_get_opts) /path/to/package.apk
 ```
 
 ## 支持的插件
