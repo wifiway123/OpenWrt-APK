@@ -1,21 +1,17 @@
 #!/bin/sh
 # apk-opts.sh - APK 安装参数配置模块
-# 提供 --allow-untrusted 开关的持久化存储与查询
+# 提供 --allow-untrusted 开关，影响 LuCI 网页上传安装和命令行 apk add
 #
 # 用法:
-#   source apk-opts.sh
-#   apk_opts_init
-#   apk add $(apk_get_opts) *.apk
-#
-# 命令行模式:
 #   sh apk-opts.sh          # 交互式切换
 #   sh apk-opts.sh on       # 开启 --allow-untrusted
 #   sh apk-opts.sh off      # 关闭 --allow-untrusted
 #   sh apk-opts.sh status   # 查看当前状态
 
 CONF_FILE="/etc/apk-store.conf"
+PKG_MGR="/usr/libexec/package-manager-call"
 
-# 初始化配置，如果配置文件不存在则创建默认值
+# 初始化配置
 apk_opts_init() {
     if [ ! -f "$CONF_FILE" ]; then
         echo "ALLOW_UNTRUSTED=true" > "$CONF_FILE"
@@ -23,8 +19,50 @@ apk_opts_init() {
     . "$CONF_FILE"
 }
 
-# 获取 APK 安装参数，供脚本调用
-# 返回值: 适合直接传递给 apk add 的参数串
+# 开启 --allow-untrusted
+apk_set_on() {
+    # 1. 修改包管理器后端（影响 LuCI 网页上传）
+    if [ -f "$PKG_MGR" ]; then
+        sed -i 's/^[[:space:]]*action="add"$/	action="add --allow-untrusted"/' "$PKG_MGR" 2>/dev/null
+    fi
+
+    # 2. 写入配置文件（影响 apk_get_opts 调用）
+    echo "ALLOW_UNTRUSTED=true" > "$CONF_FILE"
+
+    echo "[成功] --allow-untrusted 已开启（跳过签名验证）"
+}
+
+# 关闭 --allow-untrusted
+apk_set_off() {
+    # 1. 恢复包管理器后端
+    if [ -f "$PKG_MGR" ]; then
+        sed -i 's/^[[:space:]]*action="add --allow-untrusted"$/	action="add"/' "$PKG_MGR" 2>/dev/null
+    fi
+
+    # 2. 写入配置文件
+    echo "ALLOW_UNTRUSTED=false" > "$CONF_FILE"
+
+    echo "[成功] --allow-untrusted 已关闭（需要有效签名）"
+}
+
+# 查看状态
+apk_show_status() {
+    . "$CONF_FILE" 2>/dev/null || ALLOW_UNTRUSTED=true
+
+    # 检查包管理器状态
+    local pkg_status=""
+    if [ -f "$PKG_MGR" ] && grep -q "action=\"add --allow-untrusted\"" "$PKG_MGR" 2>/dev/null; then
+        pkg_status="已开启"
+    else
+        pkg_status="未开启"
+    fi
+
+    echo "ALLOW_UNTRUSTED=$([ "$ALLOW_UNTRUSTED" = "true" ] && echo 'true (开启)' || echo 'false (关闭)')"
+    echo "LuCI 网页安装: $pkg_status"
+    echo "安装参数: $(apk_get_opts)"
+}
+
+# 获取 APK 安装参数
 apk_get_opts() {
     if [ -f "$CONF_FILE" ] && grep -q "ALLOW_UNTRUSTED=true" "$CONF_FILE" 2>/dev/null; then
         echo "--allow-untrusted --force-overwrite"
@@ -33,131 +71,29 @@ apk_get_opts() {
     fi
 }
 
-# 检查是否允许无签名安装
-# 返回值: 0=允许, 1=不允许
-apk_is_untrusted() {
-    [ -f "$CONF_FILE" ] && grep -q "ALLOW_UNTRUSTED=true" "$CONF_FILE" 2>/dev/null
-}
-
-# 设置开关值
-# 参数: true 或 false
-apk_set_untrusted() {
-    local val="$1"
-    case "$val" in
-        true)
-            echo "ALLOW_UNTRUSTED=true" > "$CONF_FILE"
-            echo "[成功] --allow-untrusted 已开启（跳过签名验证）"
-            return 0
-            ;;
-        false)
-            echo "ALLOW_UNTRUSTED=false" > "$CONF_FILE"
-            echo "[成功] --allow-untrusted 已关闭（需要有效签名）"
-            return 0
-            ;;
-        *)
-            echo "[错误] 参数必须为 true 或 false"
-            return 1
-            ;;
-    esac
-}
-
-# ============================================================
-# LuCI 网页上传安装补丁（只影响网页界面）
-# ============================================================
-
-# 查找 LuCI 包管理 Lua 文件（只找 .lua 文件）
-luci_find_pkg_manager() {
-    # 搜索包含 apk 安装相关关键词的 Lua 文件
-    local result
-    result=$(find /usr/lib/lua/luci /usr/share/luci -name "*.lua" -type f 2>/dev/null | \
-        xargs grep -l "apk" 2>/dev/null | \
-        grep -v "menu\.d" | head -1)
-    [ -n "$result" ] && echo "$result" && return 0
-
-    # 搜索包含 os.execute 或 luci.sys 调用 apk 的文件
-    result=$(find /usr/lib/lua/luci -name "*.lua" -type f 2>/dev/null | \
-        xargs grep -l "os\.execute\|luci\.sys" 2>/dev/null | \
-        xargs grep -l "apk\|install\|upload" 2>/dev/null | head -1)
-    [ -n "$result" ] && echo "$result" && return 0
-
-    # 搜索 package-manager 相关的 Lua 文件
-    result=$(find /usr/lib/lua/luci -name "*package*" -name "*.lua" -type f 2>/dev/null | head -1)
-    [ -n "$result" ] && echo "$result" && return 0
-
-    return 1
-}
-
-# 给 LuCI 包管理器打补丁，添加 --allow-untrusted
-luci_patch_upload() {
-    local lua_file
-    lua_file=$(luci_find_pkg_manager)
-
-    if [ -z "$lua_file" ]; then
-        echo "[错误] 未找到 LuCI 包管理 Lua 文件"
-        return 1
-    fi
-
-    echo "[补丁] 目标文件: $lua_file"
-
-    # 备份
-    if [ ! -f "${lua_file}.bak" ]; then
-        cp "$lua_file" "${lua_file}.bak"
-        echo "[备份] 已保存: ${lua_file}.bak"
-    fi
-
-    # 替换 apk add 为带 --allow-untrusted 的版本
-    if grep -q "apk add.*upload" "$lua_file" 2>/dev/null || \
-       grep -q 'os.execute.*apk' "$lua_file" 2>/dev/null || \
-       grep -q 'luci.sys.call.*apk' "$lua_file" 2>/dev/null; then
-
-        # 多种可能的匹配模式
-        sed -i 's/os\.execute("apk add/os.execute("apk add --allow-untrusted/g' "$lua_file"
-        sed -i "s/os\.execute('apk add/os.execute('apk add --allow-untrusted/g" "$lua_file"
-        sed -i 's/luci\.sys\.call("apk add/luci.sys.call("apk add --allow-untrusted/g' "$lua_file"
-        sed -i "s/luci\.sys\.call('apk add/luci.sys.call('apk add --allow-untrusted/g" "$lua_file"
-
-        echo "[成功] LuCI 补丁已应用"
-    else
-        echo "[警告] 未在 Lua 文件中找到 apk 调用，可能需要手动修改"
-        echo "[提示] 请编辑 $lua_file，在 apk add 后添加 --allow-untrusted"
-    fi
-}
-
-# 恢复 LuCI 补丁
-luci_unpatch_upload() {
-    local lua_file
-    lua_file=$(luci_find_pkg_manager)
-
-    if [ -z "$lua_file" ]; then
-        echo "[错误] 未找到 LuCI 包管理 Lua 文件"
-        return 1
-    fi
-
-    if [ -f "${lua_file}.bak" ]; then
-        mv "${lua_file}.bak" "$lua_file"
-        echo "[成功] LuCI 补丁已恢复"
-    else
-        echo "[警告] 未找到备份文件，无法恢复"
-    fi
-}
-
-# ============================================================
-# 交互式切换菜单
-# ============================================================
+# 交互式菜单
 apk_toggle_menu() {
     . "$CONF_FILE" 2>/dev/null || ALLOW_UNTRUSTED=true
+
+    # 检测当前状态
+    local pkg_on=0
+    if [ -f "$PKG_MGR" ] && grep -q "action=\"add --allow-untrusted\"" "$PKG_MGR" 2>/dev/null; then
+        pkg_on=1
+    fi
 
     echo ""
     echo "================================"
     echo " --allow-untrusted 开关设置"
     echo "================================"
     echo ""
-    echo "  当前状态: $([ "$ALLOW_UNTRUSTED" = "true" ] && echo '✓ 开启' || echo '✗ 关闭')"
+    if [ "$ALLOW_UNTRUSTED" = "true" ] || [ "$pkg_on" -eq 1 ]; then
+        echo "  当前状态: 开启"
+    else
+        echo "  当前状态: 关闭"
+    fi
     echo ""
     echo "  1. 开启（跳过签名验证，默认）"
     echo "  2. 关闭（需要有效签名）"
-    echo "  3. 修复 LuCI 网页上传安装（推荐）"
-    echo "  4. 恢复 LuCI 网页上传安装"
     echo "  0. 返回"
     echo ""
     printf "  请选择: "
@@ -166,16 +102,10 @@ apk_toggle_menu() {
 
     case "$choice" in
         1)
-            apk_set_untrusted true
+            apk_set_on
             ;;
         2)
-            apk_set_untrusted false
-            ;;
-        3)
-            luci_patch_upload
-            ;;
-        4)
-            luci_unpatch_upload
+            apk_set_off
             ;;
         0)
             return
@@ -196,21 +126,13 @@ case "$0" in
 
         case "${1:-}" in
             on|true|1)
-                apk_set_untrusted true
+                apk_set_on
                 ;;
             off|false|0)
-                apk_set_untrusted false
-                ;;
-            patch-luci)
-                luci_patch_upload
-                ;;
-            unpatch-luci)
-                luci_unpatch_upload
+                apk_set_off
                 ;;
             status|-s|--status)
-                . "$CONF_FILE"
-                echo "ALLOW_UNTRUSTED=$([ "$ALLOW_UNTRUSTED" = "true" ] && echo 'true (开启)' || echo 'false (关闭)')"
-                echo "安装参数: $(apk_get_opts)"
+                apk_show_status
                 ;;
             *)
                 apk_toggle_menu
@@ -218,7 +140,6 @@ case "$0" in
         esac
         ;;
     *sh|*ash)
-        # 管道模式：wget -qO- ... | sh
         if [ -c /dev/tty ] 2>/dev/null; then
             apk_opts_init
             apk_toggle_menu
