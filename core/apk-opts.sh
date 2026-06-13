@@ -99,25 +99,33 @@ apk_toggle_menu() {
 
 # ============================================================
 # 命令行入口
-# 支持文件执行和管道执行两种方式
 # ============================================================
-if ! return 2>/dev/null; then
-    apk_opts_init
+case "$0" in
+    */apk-opts.sh|apk-opts.sh)
+        apk_opts_init
 
-    case "${1:-}" in
-        on|true|1)
-            apk_set_untrusted true
-            ;;
-        off|false|0)
-            apk_set_untrusted false
-            ;;
-        status|-s|--status)
-            . "$CONF_FILE"
-            echo "ALLOW_UNTRUSTED=$([ "$ALLOW_UNTRUSTED" = "true" ] && echo 'true (开启)' || echo 'false (关闭)')"
-            echo "安装参数: $(apk_get_opts)"
-            ;;
-        *)
+        case "${1:-}" in
+            on|true|1)
+                apk_set_untrusted true
+                ;;
+            off|false|0)
+                apk_set_untrusted false
+                ;;
+            status|-s|--status)
+                . "$CONF_FILE"
+                echo "ALLOW_UNTRUSTED=$([ "$ALLOW_UNTRUSTED" = "true" ] && echo 'true (开启)' || echo 'false (关闭)')"
+                echo "安装参数: $(apk_get_opts)"
+                ;;
+            *)
+                apk_toggle_menu
+                ;;
+        esac
+        ;;
+    *sh|*ash)
+        # 管道模式：wget -qO- ... | sh
+        if [ -c /dev/tty ] 2>/dev/null; then
+            apk_opts_init
             apk_toggle_menu
-            ;;
-    esac
-fi
+        fi
+        ;;
+esac
