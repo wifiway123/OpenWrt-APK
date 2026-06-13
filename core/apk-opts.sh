@@ -101,7 +101,7 @@ apk_toggle_menu() {
 # 命令行入口
 # 支持文件执行和管道执行两种方式
 # ============================================================
-(return 0 2>/dev/null) || {
+if ! return 2>/dev/null; then
     apk_opts_init
 
     case "${1:-}" in
@@ -120,4 +120,4 @@ apk_toggle_menu() {
             apk_toggle_menu
             ;;
     esac
-}
+fi
