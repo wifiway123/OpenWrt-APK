@@ -44,11 +44,11 @@ chmod +x store.sh
 OpenWrt-APK/
 ├── store.sh              # 主安装器（交互式菜单）
 ├── install.sh            # 一键安装脚本
+├── apk-opts.sh           # APK 安装参数配置（--allow-untrusted 开关）
 ├── core/
 │   ├── network.sh        # 网络工具模块
 │   ├── github.sh         # GitHub Releases API 模块
 │   ├── install.sh        # APK 安装模块
-│   ├── apk-opts.sh       # APK 安装参数配置（--allow-untrusted 开关）
 │   └── ui.sh             # 用户界面模块
 └── plugins/
     ├── openclash.sh      # OpenClash 插件
@@ -65,7 +65,7 @@ OpenWrt-APK/
 
 ## APK 安装参数配置
 
-通过独立脚本 `core/apk-opts.sh` 管理 `--allow-untrusted` 开关，持久化配置保存在 `/etc/apk-store.conf`。
+通过独立脚本 `apk-opts.sh` 管理 `--allow-untrusted` 开关，持久化配置保存在 `/etc/apk-store.conf`。
 
 ### 一键安装
 
@@ -76,7 +76,7 @@ bash <(curl -sL https://lj.1231818.xyz/kg)
 或
 
 ```sh
-wget -qO- https://raw.githubusercontent.com/chengege666/OpenWrt-APK/main/core/apk-opts.sh | sh
+wget -qO- https://raw.githubusercontent.com/chengege666/OpenWrt-APK/main/apk-opts.sh | sh
 ```
 
 > 注：OpenWrt 默认无 bash，需先安装 `opkg install bash`，或使用下方 wget 方式
@@ -85,20 +85,20 @@ wget -qO- https://raw.githubusercontent.com/chengege666/OpenWrt-APK/main/core/ap
 
 ```sh
 # 交互式菜单
-sh core/apk-opts.sh
+sh apk-opts.sh
 
 # 快速开关
-sh core/apk-opts.sh on       # 开启（跳过签名验证，默认）
-sh core/apk-opts.sh off      # 关闭（需要有效签名）
+sh apk-opts.sh on       # 开启（跳过签名验证，默认）
+sh apk-opts.sh off      # 关闭（需要有效签名）
 
 # 查看当前状态
-sh core/apk-opts.sh status
+sh apk-opts.sh status
 ```
 
 ### 脚本内调用
 
 ```sh
-. /root/apk-store/core/apk-opts.sh
+. /root/apk-store/apk-opts.sh
 apk_opts_init
 apk add $(apk_get_opts) /path/to/package.apk
 ```
