@@ -61,7 +61,82 @@ apk_set_untrusted() {
     esac
 }
 
+# ============================================================
+# LuCI 网页上传安装补丁（只影响网页界面）
+# ============================================================
+
+# 查找 LuCI 包管理 Lua 文件
+luci_find_pkg_manager() {
+    local candidates="
+/usr/lib/lua/luci/controller/admin/system.lua
+/usr/lib/lua/luci/controller/admin/package-manager.lua
+/usr/lib/lua/luci/model/cbi/admin_system/packages.lua
+/usr/share/luci/menu.d/luci-app-package-manager.json
+"
+    for f in $candidates; do
+        [ -f "$f" ] && echo "$f" && return 0
+    done
+    # 模糊搜索
+    find /usr/lib/lua/luci -name "*.lua" -type f 2>/dev/null | xargs grep -l "apk add" 2>/dev/null | head -1
+}
+
+# 给 LuCI 包管理器打补丁，添加 --allow-untrusted
+luci_patch_upload() {
+    local lua_file
+    lua_file=$(luci_find_pkg_manager)
+
+    if [ -z "$lua_file" ]; then
+        echo "[错误] 未找到 LuCI 包管理 Lua 文件"
+        return 1
+    fi
+
+    echo "[补丁] 目标文件: $lua_file"
+
+    # 备份
+    if [ ! -f "${lua_file}.bak" ]; then
+        cp "$lua_file" "${lua_file}.bak"
+        echo "[备份] 已保存: ${lua_file}.bak"
+    fi
+
+    # 替换 apk add 为带 --allow-untrusted 的版本
+    if grep -q "apk add.*upload" "$lua_file" 2>/dev/null || \
+       grep -q 'os.execute.*apk' "$lua_file" 2>/dev/null || \
+       grep -q 'luci.sys.call.*apk' "$lua_file" 2>/dev/null; then
+
+        # 多种可能的匹配模式
+        sed -i 's/os\.execute("apk add/os.execute("apk add --allow-untrusted/g' "$lua_file"
+        sed -i "s/os\.execute('apk add/os.execute('apk add --allow-untrusted/g" "$lua_file"
+        sed -i 's/luci\.sys\.call("apk add/luci.sys.call("apk add --allow-untrusted/g' "$lua_file"
+        sed -i "s/luci\.sys\.call('apk add/luci.sys.call('apk add --allow-untrusted/g" "$lua_file"
+
+        echo "[成功] LuCI 补丁已应用"
+    else
+        echo "[警告] 未在 Lua 文件中找到 apk 调用，可能需要手动修改"
+        echo "[提示] 请编辑 $lua_file，在 apk add 后添加 --allow-untrusted"
+    fi
+}
+
+# 恢复 LuCI 补丁
+luci_unpatch_upload() {
+    local lua_file
+    lua_file=$(luci_find_pkg_manager)
+
+    if [ -z "$lua_file" ]; then
+        echo "[错误] 未找到 LuCI 包管理 Lua 文件"
+        return 1
+    fi
+
+    if [ -f "${lua_file}.bak" ]; then
+        mv "${lua_file}.bak" "$lua_file"
+        echo "[成功] LuCI 补丁已恢复"
+    else
+        echo "[警告] 未找到备份文件，无法恢复"
+    fi
+}
+
+# ============================================================
 # 交互式切换菜单
+# ============================================================
 apk_toggle_menu() {
     . "$CONF_FILE" 2>/dev/null || ALLOW_UNTRUSTED=true
 
@@ -74,6 +149,8 @@ apk_toggle_menu() {
     echo ""
     echo "  1. 开启（跳过签名验证，默认）"
     echo "  2. 关闭（需要有效签名）"
+    echo "  3. 修复 LuCI 网页上传安装（推荐）"
+    echo "  4. 恢复 LuCI 网页上传安装"
     echo "  0. 返回"
     echo ""
     printf "  请选择: "
@@ -86,6 +163,12 @@ apk_toggle_menu() {
             ;;
         2)
             apk_set_untrusted false
+            ;;
+        3)
+            luci_patch_upload
+            ;;
+        4)
+            luci_unpatch_upload
             ;;
         0)
             return
@@ -110,6 +193,12 @@ case "$0" in
                 ;;
             off|false|0)
                 apk_set_untrusted false
+                ;;
+            patch-luci)
+                luci_patch_upload
+                ;;
+            unpatch-luci)
+                luci_unpatch_upload
                 ;;
             status|-s|--status)
                 . "$CONF_FILE"
