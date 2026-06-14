@@ -75,25 +75,13 @@ apk_get_opts() {
 apk_toggle_menu() {
     . "$CONF_FILE" 2>/dev/null || ALLOW_UNTRUSTED=true
 
-    # 检测当前状态
-    local pkg_on=0
-    if [ -f "$PKG_MGR" ] && grep -q "action=\"add --allow-untrusted\"" "$PKG_MGR" 2>/dev/null; then
-        pkg_on=1
-    fi
-
     echo ""
     echo "================================"
     echo " --allow-untrusted 开关设置"
     echo "================================"
     echo ""
-    if [ "$pkg_on" -eq 1 ]; then
-        echo "  当前状态: 开启"
-    else
-        echo "  当前状态: 关闭"
-    fi
-    echo ""
-    echo "  1. 开启（跳过签名验证，默认）"
-    echo "  2. 关闭（需要有效签名）"
+    echo "  1. 开启（自动添加 --allow-untrusted）"
+    echo "  2. 关闭（恢复默认，删除参数）"
     echo "  0. 返回"
     echo ""
     printf "  请选择: "
@@ -102,9 +90,11 @@ apk_toggle_menu() {
 
     case "$choice" in
         1)
+            echo "[执行] sed -i 's/action=\"add\"/action=\"add --allow-untrusted\"/' $PKG_MGR"
             apk_set_on
             ;;
         2)
+            echo "[执行] sed -i 's/action=\"add --allow-untrusted\"/action=\"add\"/' $PKG_MGR"
             apk_set_off
             ;;
         0)
