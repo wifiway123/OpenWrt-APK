@@ -64,6 +64,14 @@ install_passwall() {
         rm -f "${download_dir}/${main_file}"
         return 1
     fi
+    # 解码 URL 编码的文件名（如 %2B → +）
+    local main_decoded
+    main_decoded=$(echo "$main_file" | sed 's/%2B/+/g')
+    if [ "$main_decoded" != "$main_file" ]; then
+        mv "${download_dir}/${main_file}" "${download_dir}/${main_decoded}"
+        main_file="$main_decoded"
+        echo "[解码] 文件名已解码: $main_file"
+    fi
     echo "[成功] 主程序下载完成"
 
     echo "[步骤 2/2] 下载中文语言包..."
@@ -84,6 +92,13 @@ install_passwall() {
         if ! download_file "$i18n_url" "${download_dir}/${i18n_file}"; then
             echo "[警告] 语言包下载失败，继续安装主程序..."
             i18n_url=""
+        else
+            # 解码 URL 编码的文件名
+            local i18n_decoded
+            i18n_decoded=$(echo "$i18n_file" | sed 's/%2B/+/g')
+            if [ "$i18n_decoded" != "$i18n_file" ]; then
+                mv "${download_dir}/${i18n_file}" "${download_dir}/${i18n_decoded}" 2>/dev/null
+            fi
         fi
     else
         echo "[警告] 未找到中文语言包"
