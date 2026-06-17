@@ -1,6 +1,11 @@
 #!/bin/sh
 # core/ui.sh - 用户界面模块
 
+# 颜色定义
+GREEN='\033[32m'
+YELLOW='\033[33m'
+NC='\033[0m'
+
 show_main_menu() {
     echo "================================"
     echo " OpenWrt APK Store"
@@ -21,12 +26,12 @@ show_install_plugin_menu() {
     echo " 安装插件"
     echo "================================"
     echo ""
-    printf "  %-18s %-18s\n" "1.  OpenClash"     "6.  Argon 主题"
-    printf "  %-18s %-18s\n" "2.  MosDNS"        "7.  TaskPlan"
-    printf "  %-18s %-18s\n" "3.  Docker"        "8.  PassWall2"
-    printf "  %-18s %-18s\n" "4.  Aurora 主题"     "9.  SmartDNS"
-    printf "  %-18s %-18s\n" "5.  Lucky"         "10. Daed"
-    printf "  %-18s %-18s\n" "0.  返回上级"
+    echo -e "  ${GREEN}1.${NC}  OpenClash              ${GREEN}6.${NC}  Argon 主题"
+    echo -e "  ${GREEN}2.${NC}  MosDNS                 ${GREEN}7.${NC}  TaskPlan"
+    echo -e "  ${GREEN}3.${NC}  Docker                 ${GREEN}8.${NC}  PassWall2"
+    echo -e "  ${GREEN}4.${NC}  Aurora 主题            ${GREEN}9.${NC}  SmartDNS"
+    echo -e "  ${GREEN}5.${NC}  Lucky                  ${GREEN}10.${NC} Daed"
+    echo -e "  ${GREEN}0.${NC}  返回上级"
     echo ""
 }
 
