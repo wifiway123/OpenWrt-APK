@@ -117,6 +117,9 @@ fix_dependencies() {
 restart_luci() {
     echo "[重启] 正在重启 LuCI 服务..."
 
+    # 彻底清除 LuCI 缓存
+    rm -rf /tmp/luci-* /tmp/luci-indexcache /tmp/luci-modulecache /tmp/.luci* 2>/dev/null
+
     if command -v service >/dev/null 2>&1; then
         service rpcd restart 2>/dev/null
     fi
