@@ -21,6 +21,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 [ -f "${SCRIPT_DIR}/plugins/istore.sh" ] && . "${SCRIPT_DIR}/plugins/istore.sh"
 [ -f "${SCRIPT_DIR}/plugins/luci-app-diskman.sh" ] && . "${SCRIPT_DIR}/plugins/luci-app-diskman.sh"
 [ -f "${SCRIPT_DIR}/plugins/luci-app-wechatpush.sh" ] && . "${SCRIPT_DIR}/plugins/luci-app-wechatpush.sh"
+. "${SCRIPT_DIR}/plugins/passwall.sh"
+. "${SCRIPT_DIR}/plugins/nikki.sh"
 
 TTY="/dev/tty"
 
@@ -127,6 +129,14 @@ install_plugin_menu() {
                 install_wechatpush
                 wait_for_enter
                 ;;
+            14)
+                install_passwall
+                wait_for_enter
+                ;;
+            15)
+                install_nikki
+                wait_for_enter
+                ;;
             0)
                 return
                 ;;
@@ -195,6 +205,14 @@ uninstall_menu() {
                 ;;
             13)
                 uninstall_wechatpush
+                wait_for_enter
+                ;;
+            14)
+                uninstall_passwall
+                wait_for_enter
+                ;;
+            15)
+                uninstall_nikki
                 wait_for_enter
                 ;;
             0)
@@ -268,6 +286,14 @@ update_menu() {
                 wait_for_enter
                 ;;
             14)
+                update_passwall
+                wait_for_enter
+                ;;
+            15)
+                update_nikki
+                wait_for_enter
+                ;;
+            16)
                 update_all
                 wait_for_enter
                 ;;
@@ -301,6 +327,8 @@ update_all() {
     update_istore
     update_diskman
     update_wechatpush
+    update_passwall
+    update_nikki
 
     echo ""
     echo "================================"
