@@ -128,11 +128,20 @@ install_passwall() {
 
     local install_ok=0
     if [ -n "$apk_files" ]; then
-        echo "[安装] 安装 $apk_files"
+        echo "[安装] 批量安装 APK 包..."
         if apk add --allow-untrusted --force-overwrite $apk_files; then
             install_ok=1
         else
-            echo "[错误] apk 安装失败，尝试逐个安装..."
+            echo "[重试] 依赖缺失，尝试跳过依赖安装..."
+            local apk_opts=""
+            for f in $apk_files; do
+                if apk add --allow-untrusted --force-overwrite --force-depends "$f"; then
+                    install_ok=1
+                fi
+            done
+        fi
+        if [ "$install_ok" -eq 0 ]; then
+            echo "[重试] 尝试逐个安装..."
             for f in $apk_files; do
                 echo "[安装] 安装 $(basename "$f")..."
                 if apk add --allow-untrusted --force-overwrite "$f"; then
