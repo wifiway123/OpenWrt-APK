@@ -1,11 +1,6 @@
 #!/bin/sh
 # core/ui.sh - 用户界面模块
 
-# 颜色定义
-GREEN='\033[32m'
-YELLOW='\033[33m'
-NC='\033[0m'
-
 show_main_menu() {
     echo "================================"
     echo " OpenWrt APK Store"
@@ -26,12 +21,12 @@ show_install_plugin_menu() {
     echo " 安装插件"
     echo "================================"
     echo ""
-    echo -e "  ${GREEN}1.${NC}  OpenClash              ${GREEN}6.${NC}  Argon 主题"
-    echo -e "  ${GREEN}2.${NC}  MosDNS                 ${GREEN}7.${NC}  TaskPlan"
-    echo -e "  ${GREEN}3.${NC}  Docker                 ${GREEN}8.${NC}  PassWall2"
-    echo -e "  ${GREEN}4.${NC}  Aurora 主题            ${GREEN}9.${NC}  SmartDNS"
-    echo -e "  ${GREEN}5.${NC}  Lucky                  ${GREEN}10.${NC} Daed"
-    echo -e "  ${GREEN}0.${NC}  返回上级"
+    echo -e "  1.  OpenClash              6.  Argon 主题"
+    echo -e "  2.  MosDNS                 7.  TaskPlan"
+    echo -e "  3.  Docker                 8.  PassWall2"
+    echo -e "  4.  Aurora 主题            9.  SmartDNS"
+    echo -e "  5.  Lucky                  10. Daed"
+    echo -e "  0.  返回上级"
     echo ""
 }
 
@@ -60,17 +55,12 @@ show_uninstall_menu() {
     echo " 卸载插件"
     echo "================================"
     echo ""
-    echo "1.   卸载 OpenClash"
-    echo "2.   卸载 MosDNS"
-    echo "3.   卸载 Docker"
-    echo "4.   卸载 Aurora 主题"
-    echo "5.   卸载 Lucky"
-    echo "6.   卸载 Argon 主题"
-    echo "7.   卸载 TaskPlan"
-    echo "8.   卸载 PassWall2"
-    echo "9.   卸载 SmartDNS"
-    echo "10.  卸载 Daed"
-    echo "0.   返回上级"
+    echo -e "  1.  卸载 OpenClash         6.  卸载 Argon 主题"
+    echo -e "  2.  卸载 MosDNS            7.  卸载 TaskPlan"
+    echo -e "  3.  卸载 Docker            8.  卸载 PassWall2"
+    echo -e "  4.  卸载 Aurora 主题       9.  卸载 SmartDNS"
+    echo -e "  5.  卸载 Lucky             10. 卸载 Daed"
+    echo -e "  0.  返回上级"
     echo ""
 }
 
@@ -79,18 +69,13 @@ show_update_menu() {
     echo " 更新插件"
     echo "================================"
     echo ""
-    echo "1.   更新 OpenClash"
-    echo "2.   更新 MosDNS"
-    echo "3.   更新 Docker"
-    echo "4.   更新 Aurora 主题"
-    echo "5.   更新 Lucky"
-    echo "6.   更新 Argon 主题"
-    echo "7.   更新 TaskPlan"
-    echo "8.   更新 PassWall2"
-    echo "9.   更新 SmartDNS"
-    echo "10.  更新 Daed"
-    echo "11.  更新全部"
-    echo "0.   返回上级"
+    echo -e "  1.  更新 OpenClash         6.  更新 Argon 主题"
+    echo -e "  2.  更新 MosDNS            7.  更新 TaskPlan"
+    echo -e "  3.  更新 Docker            8.  更新 PassWall2"
+    echo -e "  4.  更新 Aurora 主题       9.  更新 SmartDNS"
+    echo -e "  5.  更新 Lucky             10. 更新 Daed"
+    echo -e "  11. 更新全部"
+    echo -e "  0.  返回上级"
     echo ""
 }
 
