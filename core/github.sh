@@ -12,13 +12,28 @@ _fetch_github_api() {
         local response
         response=$(wget -q --timeout=15 -O- "$proxied_url" 2>/dev/null)
         if [ -n "$response" ]; then
-            echo "$response"
-            return 0
+            # 校验是否为有效 JSON（以 { 或 [ 开头）
+            case "$response" in
+                [{\[]*)
+                    echo "$response"
+                    return 0
+                    ;;
+            esac
+            echo "[警告] 镜像返回非 JSON 数据，尝试直连..."
         fi
-        echo "[警告] 镜像 API 请求失败，尝试直连..."
     fi
 
-    wget -q --timeout=15 -O- "$url" 2>/dev/null
+    local response
+    response=$(wget -q --timeout=15 -O- "$url" 2>/dev/null)
+    if [ -n "$response" ]; then
+        case "$response" in
+            [{\[]*)
+                echo "$response"
+                return 0
+                ;;
+        esac
+    fi
+    return 1
 }
 
 get_latest_release() {
