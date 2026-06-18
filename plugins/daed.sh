@@ -79,28 +79,54 @@ install_daed() {
     local repo="luci-app-daed-runfiles"
     local plugin_name="daed"
 
+    # 获取 Release 信息
     local release_json
-    release_json=$(get_latest_release "$owner" "$repo") || return 1
+    release_json=$(get_latest_release "$owner" "$repo") || true
 
-    local tag
-    tag=$(get_release_tag "$release_json")
+    local tag=""
+    if [ -n "$release_json" ]; then
+        tag=$(get_release_tag "$release_json")
+    fi
+
+    # 如果 API 取不到 tag，从 HTML 页面提取
+    if [ -z "$tag" ]; then
+        echo "[回退] 从 GitHub 页面获取版本信息..."
+        local releases_page
+        releases_page=$(wget -q --timeout=15 --user-agent="$_GITHUB_UA" -O- "https://github.com/${owner}/${repo}/releases" 2>/dev/null)
+        tag=$(echo "$releases_page" | grep -o '/releases/tag/[^"]*' | head -1 | sed 's|/releases/tag/||')
+        [ -z "$tag" ] && tag="latest"
+    fi
     echo "[版本] $tag"
 
-    local all_urls
-    all_urls=$(get_download_urls "$release_json" "$owner" "$repo" "$tag")
+    # 获取下载 URL
+    local all_urls=""
+    if [ -n "$release_json" ]; then
+        all_urls=$(get_download_urls "$release_json" "$owner" "$repo" "$tag")
+    fi
+
+    # 如果 API 取不到 URL，直接解析 HTML
+    if [ -z "$all_urls" ]; then
+        echo "[回退] 从 Release 页面解析下载链接..."
+        local html_url="https://github.com/${owner}/${repo}/releases/expanded_assets/${tag}"
+        local html
+        html=$(wget -q --timeout=15 --user-agent="$_GITHUB_UA" -O- "$html_url" 2>/dev/null)
+        if [ -n "$html" ]; then
+            all_urls=$(echo "$html" | grep -o '/[^"'"'"']*\.run[^"'"'"']*' | sed 's|^|https://github.com|' | sort -u)
+        fi
+    fi
 
     # 选择对应版本前缀: 24.10 选 24-, 25.12/snapshot 选 25-
     local ver_prefix="24"
     [ "$is_apk" -eq 1 ] && ver_prefix="25"
 
-    # 架构映射
+    # 架构映射（Daed 文件名用 x86-64，系统检测返回 x86_64）
     local run_arch
     case "$arch" in
         x86_64) run_arch="x86-64" ;;
         aarch64) run_arch="aarch64_generic" ;;
     esac
 
-    # 查找匹配的 .run 文件
+    # 查找匹配的 .run 文件（先精确匹配版本前缀 + 架构）
     local run_url
     run_url=$(echo "$all_urls" | grep "${ver_prefix}-luci-app-dead" | grep "${run_arch}\.run$" | head -1)
 
@@ -113,8 +139,15 @@ install_daed() {
         fi
     fi
 
+    # x86_64 没找到则尝试不区分版本前缀
+    if [ -z "$run_url" ] && [ "$arch" = "x86_64" ]; then
+        run_url=$(echo "$all_urls" | grep "luci-app-dead" | grep "${run_arch}\.run$" | head -1)
+    fi
+
     if [ -z "$run_url" ]; then
         echo "[错误] 未找到匹配架构 ${arch} 的安装包"
+        echo "[调试] 可用链接:"
+        echo "$all_urls" | head -10
         return 1
     fi
 
