@@ -26,9 +26,11 @@ wget -O- https://raw.githubusercontent.com/chengege666/OpenWrt-APK/main/install.
 ```
 
 ## 短链接
+
 ```sh
 bash <(curl -sL https://lj.1231818.xyz/apk)
 ```
+
 ## 手动安装
 
 ```sh
@@ -46,21 +48,26 @@ OpenWrt-APK/
 ├── install.sh            # 一键安装脚本
 ├── apk-opts.sh           # APK 安装参数配置（--allow-untrusted 开关）
 ├── core/
-│   ├── network.sh        # 网络工具模块
+│   ├── network.sh        # 网络工具模块（下载/缓存/网络检测）
 │   ├── github.sh         # GitHub Releases API 模块
-│   ├── install.sh        # APK 安装模块
+│   ├── install.sh        # 安装/卸载/重启模块
 │   └── ui.sh             # 用户界面模块
 └── plugins/
-    ├── openclash.sh      # OpenClash 插件
-    ├── passwall2.sh      # PassWall2 插件
-    ├── mosdns.sh         # MosDNS 插件
-    ├── adguardhome.sh    # AdGuardHome 插件
-    ├── docker.sh         # Docker 插件
-    ├── smartdns.sh       # SmartDNS 插件
-    ├── lucky.sh          # Lucky 插件
-    ├── taskplan.sh       # TaskPlan 插件
-    ├── luci-theme-argon.sh    # Argon 主题插件
-    └── luci-theme-aurora.sh   # Aurora 主题插件
+    ├── openclash.sh          # OpenClash
+    ├── passwall.sh           # PassWall
+    ├── passwall2.sh          # PassWall2
+    ├── mosdns.sh             # MosDNS
+    ├── docker.sh             # Docker
+    ├── smartdns.sh           # SmartDNS
+    ├── lucky.sh              # Lucky
+    ├── daed.sh               # Daed
+    ├── nikki.sh              # Nikki
+    ├── taskplan.sh           # TaskPlan
+    ├── istore.sh             # iStore
+    ├── luci-app-diskman.sh   # DiskMan
+    ├── luci-app-wechatpush.sh# WeChatPush
+    ├── luci-theme-argon.sh   # Argon 主题
+    └── luci-theme-aurora.sh  # Aurora 主题
 ```
 
 ## APK 安装参数配置
@@ -108,15 +115,21 @@ apk add $(apk_get_opts) /path/to/package.apk
 | 插件 | 说明 |
 |------|------|
 | OpenClash | 透明代理工具 |
-| PassWall2 | 科学上网插件 |
+| PassWall | 科学上网 |
+| PassWall2 | 科学上网 |
+| Nikki | 科学上网 |
+| Daed | 科学上网 |
 | MosDNS | DNS 分流解析 |
 | AdGuardHome | 广告过滤 |
 | Docker | 容器管理 |
 | SmartDNS | DNS 本地加速 |
 | Lucky | 综合网络工具（DDNS/Stun/Webhook） |
 | TaskPlan | 定时任务管理 |
-| luci-theme-argon | Argon 主题美化 |
-| luci-theme-aurora | Aurora 主题美化 |
+| iStore | 软件商店 |
+| DiskMan | 磁盘管理 |
+| WeChatPush | 微信消息推送 |
+| Argon 主题 | 后台主题美化 |
+| Aurora 主题 | 后台主题美化 |
 
 ## 使用方式
 
@@ -143,17 +156,15 @@ apk add $(apk_get_opts) /path/to/package.apk
  安装插件
 ================================
 
-1.   OpenClash
-2.   MosDNS
-3.   AdGuardHome
-4.   Docker
-5.   Aurora 主题
-6.   Lucky
-7.   Argon 主题
-8.   TaskPlan 定时任务
-9.   PassWall2
-10.  SmartDNS
-0.   返回上级
+  1.  OpenClash (科学上网)       6.  Argon 主题 (后台主题)
+  2.  MosDNS (DNS解析)           7.  TaskPlan (定时任务)
+  3.  Docker (容器管理)          8.  PassWall2 (科学上网)
+  4.  Aurora 主题 (后台主题)     9.  SmartDNS (DNS加速)
+  5.  Lucky (端口转发)           10. Daed (科学上网)
+  11. iStore (软件商店)          12. DiskMan (磁盘管理)
+  13. WeChatPush (消息推送)      14. PassWall (科学上网)
+  15. Nikki (科学上网)
+  0.  返回上级
 ```
 
 ## 添加新插件
@@ -164,31 +175,56 @@ apk add $(apk_get_opts) /path/to/package.apk
 #!/bin/sh
 # plugins/your_plugin.sh
 
-GITHUB_OWNER="owner"
-GITHUB_REPO="repo"
-PLUGIN_NAME="plugin"
-
 install_your_plugin() {
-    # 安装逻辑
+    local owner="owner"
+    local repo="repo"
+    local plugin_name="plugin"
+
+    # 获取最新 Release
+    local release_json
+    release_json=$(get_latest_release "$owner" "$repo") || return 1
+
+    local tag
+    tag=$(get_release_tag "$release_json")
+    echo "[版本] $tag"
+
+    # 获取下载链接
+    local all_urls
+    all_urls=$(get_download_urls "$release_json" "$owner" "$repo" "$tag")
+
+    # 过滤并下载
+    local url
+    url=$(echo "$all_urls" | grep "xxx.apk" | head -1)
+    # ... 下载、安装逻辑
 }
 
 uninstall_your_plugin() {
-    # 卸载逻辑
+    uninstall_plugin "luci-app-xxx"
 }
 
 update_your_plugin() {
-    # 更新逻辑
+    cleanup_old_cache
+    install_your_plugin
 }
 ```
 
 然后在 `store.sh` 中引入并添加到菜单。
 
+### 插件模板说明
+
+- `get_latest_release owner/repo` - 获取最新 Release JSON
+- `get_release_tag json` - 提取版本号
+- `get_download_urls json owner repo tag` - 获取所有下载链接（含 HTML 回退机制）
+- `download_file url output_path` - 下载文件（含镜像加速、重试）
+- `fix_dependencies` - 修复依赖
+- `restart_luci` - 重启 LuCI 界面
+
 ## 技术栈
 
 - Shell (兼容 BusyBox ash)
 - wget
-- GitHub API
-- APK 包管理
+- GitHub API / SourceForge
+- APK / OPKG 包管理
 
 ## 许可证
 
