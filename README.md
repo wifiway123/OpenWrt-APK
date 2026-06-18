@@ -70,7 +70,7 @@ OpenWrt-APK/
     └── luci-theme-aurora.sh  # Aurora 主题
 ```
 
-## APK 安装参数配置
+## APK luci安装参数配置
 
 通过独立脚本 `apk-opts.sh` 管理 `--allow-untrusted` 开关，持久化配置保存在 `/etc/apk-store.conf`。
 
