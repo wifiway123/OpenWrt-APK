@@ -23,7 +23,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 [ -f "${SCRIPT_DIR}/plugins/luci-app-wechatpush.sh" ] && . "${SCRIPT_DIR}/plugins/luci-app-wechatpush.sh"
 . "${SCRIPT_DIR}/plugins/passwall.sh"
 . "${SCRIPT_DIR}/plugins/nikki.sh"
-. "${SCRIPT_DIR}/plugins/luci-app-advanced-uninstall.sh"
+
 
 TTY="/dev/tty"
 
@@ -138,10 +138,7 @@ install_plugin_menu() {
                 install_nikki
                 wait_for_enter
                 ;;
-            16)
-                install_advanced_uninstall
-                wait_for_enter
-                ;;
+            
             0)
                 return
                 ;;
@@ -220,10 +217,7 @@ uninstall_menu() {
                 uninstall_nikki
                 wait_for_enter
                 ;;
-            16)
-                uninstall_advanced_uninstall
-                wait_for_enter
-                ;;
+            
             0)
                 return
                 ;;
@@ -303,10 +297,6 @@ update_menu() {
                 wait_for_enter
                 ;;
             16)
-                update_advanced_uninstall
-                wait_for_enter
-                ;;
-            17)
                 update_all
                 wait_for_enter
                 ;;
@@ -342,7 +332,6 @@ update_all() {
     update_wechatpush
     update_passwall
     update_nikki
-    update_advanced_uninstall
 
     echo ""
     echo "================================"
