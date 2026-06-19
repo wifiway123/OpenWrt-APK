@@ -217,13 +217,13 @@ filter_dependency_apks() {
 }
 
 # 通用版本回退：在旧版本中查找第一个包含指定资产匹配模式的版本
-# 输出：第一行 = tag，后续行 = 匹配资产的下载 URL（含多行）
+# 输出：第一行 = tag，后续行 = 匹配资产的下载 URL
 # 参数：
 #   $1 - owner
 #   $2 - repo
 #   $3 - 跳过版本 tag（当前最新版）
-#   $4 - URL 匹配模式（awk regex，如 "\\.apk$"）
-#   $5 - 名称额外匹配模式（可选，awk regex，如 "luci-app-taskplan-"）
+#   $4 - URL 匹配模式（grep 格式，如 "\.apk$"）
+#   $5 - 名称额外匹配模式（可选，grep 格式，如 "luci-app-taskplan-"）
 find_asset_in_older_releases() {
     local owner="$1"
     local repo="$2"
@@ -233,48 +233,54 @@ find_asset_in_older_releases() {
 
     [ -z "$owner" ] || [ -z "$repo" ] && return 1
 
-    local api_url="https://api.github.com/repos/${owner}/${repo}/releases?per_page=30"
+    # 获取前 15 个 release 的 tag 列表
+    local api_url="https://api.github.com/repos/${owner}/${repo}/releases?per_page=15"
     local releases_list
     releases_list=$(_fetch_github_api "$api_url" "Releases list: $owner/$repo")
     [ -z "$releases_list" ] && return 1
 
-    # awk 解析 tag + browser_download_url，找到第一个匹配的版本
-    local result
-    result=$(echo "$releases_list" | awk -v skip="$skip_tag" -v upat="$url_pattern" -v npat="$name_pattern" '
-    BEGIN { tag = ""; found = 0; output = "" }
-    /"tag_name":/ {
-        if (found && tag != "" && tag != skip) {
-            print tag
-            print output
-            exit 0
-        }
-        gsub(/.*"tag_name": *"/, "");
-        gsub(/".*/, "");
-        tag = $0;
-        found = 0;
-        output = "";
-    }
-    /"browser_download_url":/ {
-        gsub(/.*"browser_download_url": *"/, "");
-        gsub(/".*/, "");
-        url = $0;
-        if (url ~ upat) {
-            if (npat == "" || url ~ npat) {
-                found = 1;
-                if (output != "") output = output "\n";
-                output = output url;
-            }
-        }
-    }
-    END {
-        if (found && tag != "" && tag != skip) {
-            print tag
-            print output
-        }
-    }
-    ')
+    # 提取所有 tag_name（sed 逐行匹配兼容 BusyBox）
+    local tags
+    tags=$(echo "$releases_list" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p')
+    [ -z "$tags" ] && return 1
 
-    [ -z "$result" ] && return 1
-    echo "$result"
+    local result_tag=""
+    local result_urls=""
+
+    for t in $tags; do
+        [ "$t" = "$skip_tag" ] && continue
+        [ -n "$result_tag" ] && continue
+
+        # 逐版本查询详情
+        local release_json
+        release_json=$(_fetch_github_api \
+            "https://api.github.com/repos/${owner}/${repo}/releases/tags/${t}" \
+            "Release: $t")
+        [ -z "$release_json" ] && continue
+
+        # 获取该版本的下载 URL
+        local urls
+        urls=$(_get_urls_from_json "$release_json")
+        [ -z "$urls" ] && continue
+
+        # 匹配 URL pattern
+        local match
+        match=$(echo "$urls" | grep "$url_pattern" 2>/dev/null)
+        [ -z "$match" ] && continue
+
+        # 可选额外名称匹配
+        if [ -n "$name_pattern" ]; then
+            match=$(echo "$match" | grep "$name_pattern" 2>/dev/null)
+            [ -z "$match" ] && continue
+        fi
+
+        result_tag="$t"
+        result_urls="$match"
+        break
+    done
+
+    [ -z "$result_tag" ] && return 1
+    echo "$result_tag"
+    echo "$result_urls"
     return 0
 }
