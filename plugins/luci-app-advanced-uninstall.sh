@@ -40,7 +40,7 @@ install_advanced_uninstall() {
 
     echo "[安装] 正在安装..."
     cd "${CACHE_DIR}/${plugin_name}" || return 1
-    if apk add --allow-untrusted --force-overwrite *.apk 2>/dev/null; then
+    if apk add --allow-untrusted --force-overwrite *.apk; then
         echo "[成功] APK 安装完成"
     else
         echo "[错误] APK 安装失败"
