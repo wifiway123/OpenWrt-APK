@@ -55,25 +55,52 @@ install_advanced_uninstall() {
     rm -f "${download_dir}/${filename}"
 
     # 查找 ipk 安装文件
-    local ipk_files
-    ipk_files=$(find "$extracted_dir" -name "*.ipk" 2>/dev/null)
+    local ipk_file
+    ipk_file=$(find "$extracted_dir" -name "*.ipk" 2>/dev/null | head -1)
 
-    if [ -z "$ipk_files" ]; then
+    if [ -z "$ipk_file" ]; then
         echo "[错误] 未找到安装包文件"
         rm -rf "$download_dir"
         return 1
     fi
 
-    echo "[安装] 正在安装..."
-    if apk add --allow-untrusted --force-overwrite $ipk_files 2>/dev/null; then
-        echo "[成功] 安装完成"
-    else
-        echo "[错误] 安装失败"
+    echo "[安装] 正在安装 ${ipk_file##*/}..."
+
+    # ipk 是 tar.gz 格式，手动解压 data.tar.gz 到根目录
+    local ipk_extract_dir="${download_dir}/ipk_extract"
+    rm -rf "$ipk_extract_dir"
+    mkdir -p "$ipk_extract_dir"
+
+    if ! tar -xzf "$ipk_file" -C "$ipk_extract_dir" 2>/dev/null; then
+        echo "[错误] 解压 ipk 失败"
         rm -rf "$download_dir"
         return 1
     fi
 
+    if [ -f "${ipk_extract_dir}/data.tar.gz" ]; then
+        echo "[安装] 释放文件到系统..."
+        tar -xzf "${ipk_extract_dir}/data.tar.gz" -C / 2>/dev/null
+    fi
+
+    # 执行安装后脚本
+    if [ -f "${ipk_extract_dir}/control.tar.gz" ]; then
+        local control_dir="${download_dir}/control"
+        rm -rf "$control_dir"
+        mkdir -p "$control_dir"
+        tar -xzf "${ipk_extract_dir}/control.tar.gz" -C "$control_dir" 2>/dev/null
+
+        if [ -x "${control_dir}/postinst" ]; then
+            echo "[脚本] 执行安装后脚本..."
+            "${control_dir}/postinst" configure 2>/dev/null
+        fi
+        if [ -x "${control_dir}/postinst-pkg" ]; then
+            "${control_dir}/postinst-pkg" configure 2>/dev/null
+        fi
+        rm -rf "$control_dir"
+    fi
+
     rm -rf "$download_dir"
+    echo "[成功] 安装完成"
 
     echo "[重启] 重启 LuCI..."
     restart_luci
