@@ -87,19 +87,32 @@ expand_overlay() {
     echo ""
 
     # 选择大小
-    echo "输入 overlay 大小 (2G / 4G / 8G / 4096M / all, 默认 4G):"
-    printf "> "; read -r si < /dev/tty 2>/dev/null || read -r si
-    si=$(echo "$si" | tr -d '\r\n ' | tr 'A-Z' 'a-z')
+    echo "选择 overlay 大小："
+    echo "  1. 用满剩余空间（推荐）"
+    echo "  2. 自定义大小（单位 MiB，如 4096=4G）"
+    echo ""
+    printf "请选择 [1/2] (默认 1): "; read -r mode_sel < /dev/tty 2>/dev/null || read -r mode_sel
+    mode_sel=$(echo "$mode_sel" | tr -d '\r\n ')
+
     local size_mb=0
-    case "$si" in
-        ""|4g)  size_mb=4096 ;;
-        all)    size_mb=$max_mb ;;
-        *g)     size_mb=$(($(echo "$si" | sed 's/g$//') * 1024)) ;;
-        *m)     size_mb=$(echo "$si" | sed 's/m$//') ;;
-        *[0-9]*) size_mb=$si ;;
-        *)      size_mb=4096 ;;
+    case "$mode_sel" in
+        2)
+            echo "最大可用: ${max_mb}MiB"
+            printf "输入大小 (MiB, 默认 4096): "; read -r si < /dev/tty 2>/dev/null || read -r si
+            si=$(echo "$si" | tr -d '\r\n ' | tr 'A-Z' 'a-z')
+            case "$si" in
+                ""|4096) size_mb=4096 ;;
+                all)     size_mb=$max_mb ;;
+                [0-9]*)  size_mb=$si ;;
+                *)       size_mb=4096 ;;
+            esac
+            ;;
+        *)
+            size_mb=$max_mb
+            echo "  使用全部剩余空间: ${size_mb}MiB"
+            ;;
     esac
-    [ "$size_mb" -ge 512 ] || size_mb=512
+    [ "$size_mb" -ge 512 ]  || size_mb=512
     [ "$size_mb" -le "$max_mb" ] || size_mb=$max_mb
 
     local end_mb
@@ -111,8 +124,8 @@ expand_overlay() {
 
     # 最终确认
     echo "[警告] 即将修改分区表！"
-    printf "确认继续？(yes): "; read -r confirm < /dev/tty 2>/dev/null || read -r confirm
-    [ "$(echo "$confirm" | tr 'a-z' 'A-Z')" = "YES" ] || { echo "[取消]"; return 0; }
+    printf "确认继续？(y/N): "; read -r confirm < /dev/tty 2>/dev/null || read -r confirm
+    [ "$(echo "$confirm" | tr 'a-z' 'A-Z')" = "Y" ] || { echo "[取消]"; return 0; }
 
     # 检查/创建分区表
     local label
@@ -179,6 +192,6 @@ expand_overlay() {
     echo "  UUID: $uuid"
     echo "  大小: ${size_mb}MiB"
     echo "================================"
-    printf "立即重启？(yes/NO): "; read -r rb < /dev/tty 2>/dev/null || read -r rb
-    [ "$(echo "$rb" | tr 'a-z' 'A-Z')" = "YES" ] && reboot || echo "稍后手动: reboot"
+    printf "立即重启？(y/N): "; read -r rb < /dev/tty 2>/dev/null || read -r rb
+    [ "$(echo "$rb" | tr 'a-z' 'A-Z')" = "Y" ] && reboot || echo "稍后手动: reboot"
 }
