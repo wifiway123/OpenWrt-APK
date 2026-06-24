@@ -156,20 +156,6 @@ OpenWrt-APK/
 
 主菜单选 **8** 进入交互式开关。
 
-### 命令行使用
-
-```sh
-# 直接执行脚本
-sh /root/apk-store/core/apk-opts.sh
-
-# 快速开关
-sh /root/apk-store/core/apk-opts.sh on       # 开启（跳过签名验证）
-sh /root/apk-store/core/apk-opts.sh off      # 关闭（需要有效签名）
-
-# 查看当前状态
-sh /root/apk-store/core/apk-opts.sh status
-```
-
 ### 一键独立安装
 
 ```sh
