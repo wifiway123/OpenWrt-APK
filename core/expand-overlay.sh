@@ -150,6 +150,18 @@ expand_overlay() {
     uci commit fstab
     /etc/init.d/fstab enable 2>/dev/null || true
 
+    # 写入 rc.local fallback（sysupgrade -n 后 fstab 丢失时的兜底）
+    local rc_local="/etc/rc.local"
+    local fallback_marker="# EXPAND_OVERLAY_FALLBACK"
+    if grep -q "$fallback_marker" "$rc_local" 2>/dev/null; then
+        # 已有 fallback，更新 UUID
+        sed -i "/$fallback_marker/,/^fi/d" "$rc_local"
+    fi
+    # 在 exit 0 之前插入
+    sed -i '/^exit 0/i '"$fallback_marker"'\nif ! mount | grep -q " /overlay "; then\n  [ -b /dev/disk/by-uuid/'"$uuid"' ] && mount /dev/disk/by-uuid/'"$uuid"' /overlay 2>/dev/null || true\nfi' "$rc_local"
+    chmod +x "$rc_local"
+    echo "  [rc.local] fallback 已写入（UUID: $uuid）"
+
     echo ""
     echo "================================"
     echo " overlay 扩容完成"

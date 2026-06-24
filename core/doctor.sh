@@ -4,50 +4,53 @@
 
 show_system_info() {
     echo ""
-    echo "================================"
-    echo " 系统信息"
-    echo "================================"
-    echo ""
+    echo "======== 系统信息 ========"
 
-    echo "--- OpenWrt 版本 ---"
-    [ -f /etc/openwrt_release ] && cat /etc/openwrt_release || echo "(未找到)"
-    echo ""
+    # 版本
+    local ver=""
+    [ -f /etc/openwrt_release ] && ver=$(grep "DISTRIB_DESCRIPTION" /etc/openwrt_release | cut -d"'" -f2)
+    echo "  固件: ${ver:-未知}"
 
-    echo "--- 系统架构 ---"
-    echo "  架构: $(uname -m)"
-    echo "  内核: $(uname -r)"
-    echo ""
+    # 架构 + 内核
+    echo "  架构: $(uname -m) | 内核: $(uname -r)"
 
-    echo "--- 包管理器 ---"
+    # 包管理器
+    local pkg="未知" pkg_count="?" pkg_arch=""
     if command -v apk >/dev/null 2>&1; then
-        echo "  包管理器: apk"
-        echo "  APK 架构: $(apk --print-arch 2>/dev/null || echo unknown)"
-        echo "  已安装: $(apk list --installed 2>/dev/null | wc -l) 包"
+        pkg="apk"; pkg_count=$(apk list --installed 2>/dev/null | wc -l)
+        pkg_arch=$(apk --print-arch 2>/dev/null)
+        echo "  包管理: $pkg ($pkg_count 包) | APK 架构: $pkg_arch"
     elif command -v opkg >/dev/null 2>&1; then
-        echo "  包管理器: opkg"
-        echo "  已安装: $(opkg list-installed 2>/dev/null | wc -l) 包"
+        pkg="opkg"; pkg_count=$(opkg list-installed 2>/dev/null | wc -l)
+        echo "  包管理: $pkg ($pkg_count 包)"
     else
-        echo "  包管理器: 未知"
+        echo "  包管理: 未知"
     fi
-    echo ""
 
-    echo "--- 磁盘空间 ---"
-    df -h 2>/dev/null || df
-    echo ""
+    # 磁盘
+    df -h 2>/dev/null | awk '
+        NR==1{printf "  磁盘: %s\n", $0}
+        /overlay$/||/\/root/||/\/overlay/||/\/$/{
+            if(NR>1) printf "        %s\n", $0
+        }'
 
-    echo "--- 内存信息 ---"
-    free -h 2>/dev/null || free 2>/dev/null || cat /proc/meminfo 2>/dev/null | head -5 || echo "(不可用)"
-    echo ""
+    # 内存
+    local mem_total mem_free
+    if command -v free >/dev/null 2>&1; then
+        free -h 2>/dev/null | awk '/Mem:/{printf "  内存: 总 %s  已用 %s  可用 %s\n", $2, $3, $4}'
+    else
+        mem_total=$(awk '/MemTotal/{printf "%.0f", $2/1024}' /proc/meminfo 2>/dev/null)
+        mem_free=$(awk '/MemAvailable/{printf "%.0f", $2/1024}' /proc/meminfo 2>/dev/null)
+        [ -n "$mem_total" ] && echo "  内存: 总 ${mem_total}MiB  可用 ${mem_free}MiB"
+    fi
 
-    echo "--- 挂载状态 ---"
-    mount | grep -E ' on /$| on /overlay | on /rom | on /tmp ' || echo "(无)"
-    echo ""
-
-    echo "--- overlay 使用率 ---"
+    # overlay 使用率（单行）
     if mount | grep -q "overlayfs:/overlay on /"; then
-        df /overlay 2>/dev/null | awk 'NR==2{printf "  总: %s  已用: %s  可用: %s  使用率: %s\n", $2, $3, $4, $5}'
+        df /overlay 2>/dev/null | awk 'NR==2{printf "  overlay: 总 %s  已用 %s  可用 %s  使用率 %s\n", $2, $3, $4, $5}'
     else
-        df / 2>/dev/null | awk 'NR==2{printf "  总: %s  已用: %s  可用: %s  使用率: %s\n", $2, $3, $4, $5}'
+        df / 2>/dev/null | awk 'NR==2{printf "  /: 总 %s  已用 %s  可用 %s  使用率 %s\n", $2, $3, $4, $5}'
     fi
+
+    echo "=========================="
     echo ""
 }
