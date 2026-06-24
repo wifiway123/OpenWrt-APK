@@ -1,12 +1,12 @@
 #!/bin/sh
-# apk-opts.sh - APK 安装参数配置模块
+# core/apk-opts.sh - APK 安装参数配置模块
 # 提供 --allow-untrusted 开关，影响 LuCI 网页上传安装和命令行 apk add
 #
 # 用法:
-#   sh apk-opts.sh          # 交互式切换
-#   sh apk-opts.sh on       # 开启 --allow-untrusted
-#   sh apk-opts.sh off      # 关闭 --allow-untrusted
-#   sh apk-opts.sh status   # 查看当前状态
+#   sh core/apk-opts.sh          # 交互式切换
+#   sh core/apk-opts.sh on       # 开启 --allow-untrusted
+#   sh core/apk-opts.sh off      # 关闭 --allow-untrusted
+#   sh core/apk-opts.sh status   # 查看当前状态
 
 CONF_FILE="/etc/apk-store.conf"
 PKG_MGR="/usr/libexec/package-manager-call"

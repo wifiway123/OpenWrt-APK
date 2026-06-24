@@ -13,6 +13,7 @@ show_main_menu() {
     echo "5.   基础初始化（时区 / 中文 / SFTP / 工具）"
     echo "6.   自定义 overlay 扩容"
     echo "7.   查看系统信息"
+    echo "8.   APK 安装参数 (--allow-untrusted)"
     echo "00.  卸载脚本"
     echo "000. 更新脚本"
     echo "0.   退出"
