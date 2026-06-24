@@ -114,13 +114,23 @@ expand_overlay() {
     printf "确认继续？(yes): "; read -r confirm < /dev/tty 2>/dev/null || read -r confirm
     [ "$(echo "$confirm" | tr 'a-z' 'A-Z')" = "YES" ] || { echo "[取消]"; return 0; }
 
+    # 检查/创建分区表
+    local label
+    label=$(parted -m "$disk" unit MiB print 2>/dev/null | awk -F: 'NR==2{print $6}')
+    if [ -z "$label" ] || [ "$label" = "unknown" ]; then
+        echo "[分区表] 无分区表，创建 GPT"
+        parted -s "$disk" mklabel gpt
+        sleep 2
+    fi
+
     # 创建分区
     echo "[创建] 分区 ${start}MiB - ${finish}MiB"
     parted -s "$disk" unit MiB mkpart primary ext4 "${start}" "${finish}"
     sleep 3; partprobe "$disk" 2>/dev/null || true; sleep 3; block info >/dev/null 2>&1 || true; sleep 2
 
-    # 获取新分区设备名
-    local pn=$(( $(parted -m "$disk" unit MiB print 2>/dev/null | wc -l) - 2 ))
+    # 获取新分区设备名（取 parted 输出中最后一个分区的编号）
+    local pn
+    pn=$(parted -m "$disk" unit MiB print 2>/dev/null | awk -F: 'NR>2{last=$1}END{print last}')
     local new_part=""
     case "$disk" in /dev/mmcblk*|/dev/nvme*) new_part="${disk}p${pn}" ;; *) new_part="${disk}${pn}" ;; esac
     [ -b "$new_part" ] || { echo "[错误] 分区未出现: $new_part"; return 1; }
