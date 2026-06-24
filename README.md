@@ -6,17 +6,15 @@ OpenWrt APK 应用商店 - 一键插件安装系统
 
 ## 功能特性
 
-- 一键安装插件
+- 一键安装/卸载/更新插件
 - 自动识别系统架构（x86_64/aarch64/arm/mipsel/mips/riscv64）
 - 自动获取 GitHub Releases 最新版本
-- 自动安装依赖
-- 自动安装中文包
-- 自动修复依赖
-- 自动重启 LuCI
-- 插件卸载
-- 插件更新（支持一键更新全部）
+- 自动修复依赖 & 重启 LuCI
+- 系统初始化（时区/中文界面/SFTP/基础工具）
+- Overlay 扩容（支持自定义大小 / 还原）
+- APK 安装参数配置（--allow-untrusted 开关）
+- 支持一键更新全部插件
 - 一键配置启动快捷键
-- 自动更新脚本
 - 支持管道安装（wget -O- | sh）
 
 ## 一键安装
@@ -25,13 +23,13 @@ OpenWrt APK 应用商店 - 一键插件安装系统
 wget -O- https://raw.githubusercontent.com/chengege666/OpenWrt-APK/main/install.sh | sh
 ```
 
-## 短链接
+### 短链接
 
 ```sh
 bash <(curl -sL https://lj.1231818.xyz/apk)
 ```
 
-## 手动安装
+### 手动安装
 
 ```sh
 git clone https://github.com/chengege666/OpenWrt-APK.git
@@ -46,12 +44,15 @@ chmod +x store.sh
 OpenWrt-APK/
 ├── store.sh              # 主安装器（交互式菜单）
 ├── install.sh            # 一键安装脚本
-├── apk-opts.sh           # APK 安装参数配置（--allow-untrusted 开关）
 ├── core/
 │   ├── network.sh        # 网络工具模块（下载/缓存/网络检测）
 │   ├── github.sh         # GitHub Releases API 模块
 │   ├── install.sh        # 安装/卸载/重启模块
-│   └── ui.sh             # 用户界面模块
+│   ├── ui.sh             # 用户界面模块
+│   ├── system-init.sh    # 系统初始化（时区/中文/SFTP/工具）
+│   ├── expand-overlay.sh # Overlay 扩容 & 还原
+│   ├── doctor.sh         # 系统信息查看
+│   └── apk-opts.sh       # APK 安装参数配置（--allow-untrusted 开关）
 └── plugins/
     ├── openclash.sh          # OpenClash
     ├── passwall.sh           # PassWall
@@ -70,42 +71,115 @@ OpenWrt-APK/
     └── luci-theme-aurora.sh  # Aurora 主题
 ```
 
-## APK luci安装参数配置
+## 主菜单
 
-通过独立脚本 `apk-opts.sh` 管理 `--allow-untrusted` 开关，持久化配置保存在 `/etc/apk-store.conf`。
+```
+================================
+ OpenWrt APK Store
+================================
 
-### 一键安装
-
-```sh
-bash <(curl -sL https://lj.1231818.xyz/kg)
+1.   安装插件
+2.   卸载插件
+3.   更新插件
+4.   一键配置启动快捷键
+5.   基础初始化（时区 / 中文 / SFTP / 工具）
+6.   自定义 overlay 扩容
+7.   查看系统信息
+8.   APK 安装参数 (--allow-untrusted)
+00.  卸载脚本
+000. 更新脚本
+0.   退出
 ```
 
-或
+### 选项说明
 
-```sh
-wget -qO- https://raw.githubusercontent.com/chengege666/OpenWrt-APK/main/apk-opts.sh | sh
+| 选项 | 功能 |
+|------|------|
+| 1 | 安装插件（15+ 插件子菜单） |
+| 2 | 卸载插件 |
+| 3 | 更新插件（含一键更新全部） |
+| 4 | 设置单字母快捷键启动脚本 |
+| 5 | 设置时区、安装中文包/SFTP/curl，修复 wget |
+| 6 | Overlay 管理（扩容 / 还原到内部存储） |
+| 7 | 查看固件版本、架构、磁盘、内存、overlay 使用率 |
+| 8 | 开启/关闭 `--allow-untrusted` 签名验证 |
+
+## 系统初始化
+
+安装菜单选项 5，功能包括：
+
+- 设置时区 `Asia/Shanghai`
+- 恢复 wget 指向（适配 apk 环境）
+- 更新包索引
+- 安装基础包：`ca-bundle`、`curl`、`openssh-sftp-server`、中文语言包
+- 重启 dropbear 使 SFTP 可用
+- 刷新 LuCI 界面
+
+## Overlay 扩容
+
+通过菜单选项 6 进入 overlay 管理子菜单：
+
+```
+==========================
+ Overlay 管理
+==========================
+
+  1. 扩容 overlay
+  2. 还原 overlay（恢复到内部存储）
+  0. 返回
 ```
 
-> 注：OpenWrt 默认无 bash，需先安装 `opkg install bash`，或使用下方 wget 方式
+### 扩容流程
+
+1. 检测当前 overlay 来源
+2. 自动安装必需工具（`block-mount`、`e2fsprogs`、`kmod-fs-ext4`、`parted`）
+3. 列出可用磁盘及剩余空间
+4. 选择磁盘 → 选择大小（用满剩余空间或自定义）
+5. 创建 GPT 分区表（如需要）→ 创建 ext4 分区
+6. 迁移现有 overlay 数据 → 写入 fstab 自动挂载
+7. 可选立即重启
+
+> 扩容不覆盖固件，所有软件包和配置均迁移到外部分区。
+> sysupgrade（保留配置）后正常使用，sysupgrade -n 时 rc.local fallback 自动兜底。
+
+### 还原
+
+- 删除 fstab 配置和 rc.local fallback
+- 重启后恢复到内部 loop 存储
+- 外部分区数据不会自动删除
+
+## APK 安装参数配置
+
+管理 `--allow-untrusted` 开关，持久化配置保存在 `/etc/apk-store.conf`。影响 LuCI 网页上传安装和命令行 apk add。
+
+### 在菜单中使用
+
+主菜单选 **8** 进入交互式开关。
 
 ### 命令行使用
 
 ```sh
-# 交互式菜单
-sh apk-opts.sh
+# 直接执行脚本
+sh /root/apk-store/core/apk-opts.sh
 
 # 快速开关
-sh apk-opts.sh on       # 开启（跳过签名验证，默认）
-sh apk-opts.sh off      # 关闭（需要有效签名）
+sh /root/apk-store/core/apk-opts.sh on       # 开启（跳过签名验证）
+sh /root/apk-store/core/apk-opts.sh off      # 关闭（需要有效签名）
 
 # 查看当前状态
-sh apk-opts.sh status
+sh /root/apk-store/core/apk-opts.sh status
+```
+
+### 一键独立安装
+
+```sh
+bash <(curl -sL https://raw.githubusercontent.com/chengege666/OpenWrt-APK/main/core/apk-opts.sh)
 ```
 
 ### 脚本内调用
 
 ```sh
-. /root/apk-store/apk-opts.sh
+. /root/apk-store/core/apk-opts.sh
 apk_opts_init
 apk add $(apk_get_opts) /path/to/package.apk
 ```
@@ -130,42 +204,6 @@ apk add $(apk_get_opts) /path/to/package.apk
 | WeChatPush | 微信消息推送 |
 | Argon 主题 | 后台主题美化 |
 | Aurora 主题 | 后台主题美化 |
-
-## 使用方式
-
-运行 `store.sh` 后显示主菜单：
-
-```
-================================
- OpenWrt APK Store
-================================
-
-1.   安装插件
-2.   卸载插件
-3.   更新插件
-4.   一键配置启动快捷键
-00.  卸载脚本
-000. 更新脚本
-0.   退出
-```
-
-选择 **安装插件** 后进入子菜单：
-
-```
-================================
- 安装插件
-================================
-
-  1.  OpenClash (科学上网)       6.  Argon 主题 (后台主题)
-  2.  MosDNS (DNS解析)           7.  TaskPlan (定时任务)
-  3.  Docker (容器管理)          8.  PassWall2 (科学上网)
-  4.  Aurora 主题 (后台主题)     9.  SmartDNS (DNS加速)
-  5.  Lucky (端口转发)           10. Daed (科学上网)
-  11. iStore (软件商店)          12. DiskMan (磁盘管理)
-  13. WeChatPush (消息推送)      14. PassWall (科学上网)
-  15. Nikki (科学上网)
-  0.  返回上级
-```
 
 ## 添加新插件
 
@@ -210,21 +248,24 @@ update_your_plugin() {
 
 然后在 `store.sh` 中引入并添加到菜单。
 
-### 插件模板说明
+### 核心函数说明
 
-- `get_latest_release owner/repo` - 获取最新 Release JSON
-- `get_release_tag json` - 提取版本号
-- `get_download_urls json owner repo tag` - 获取所有下载链接（含 HTML 回退机制）
-- `download_file url output_path` - 下载文件（含镜像加速、重试）
-- `fix_dependencies` - 修复依赖
-- `restart_luci` - 重启 LuCI 界面
+| 函数 | 说明 |
+|------|------|
+| `get_latest_release owner/repo` | 获取最新 Release JSON |
+| `get_release_tag json` | 提取版本号 |
+| `get_download_urls json owner repo tag` | 获取所有下载链接（含 HTML 回退机制） |
+| `download_file url output_path` | 下载文件（含镜像加速、重试） |
+| `fix_dependencies` | 修复依赖 |
+| `restart_luci` | 重启 LuCI 界面 |
 
 ## 技术栈
 
-- Shell (兼容 BusyBox ash)
-- wget
-- GitHub API / SourceForge
+- Shell（兼容 BusyBox ash）
+- wget / curl
+- GitHub API
 - APK / OPKG 包管理
+- parted / ext4 / overlayfs
 
 ## 许可证
 
