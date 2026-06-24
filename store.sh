@@ -68,6 +68,7 @@ main_menu() {
                 ;;
             8)
                 sh "${SCRIPT_DIR}/core/apk-opts.sh"
+                wait_for_enter
                 ;;
             00)
                 uninstall_store
