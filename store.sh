@@ -547,6 +547,10 @@ modify_repo() {
                 repo_restore
                 wait_for_enter
                 ;;
+            5)
+                repo_show_current
+                wait_for_enter
+                ;;
             0)
                 return
                 ;;
