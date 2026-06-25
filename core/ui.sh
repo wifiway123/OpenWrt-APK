@@ -3,7 +3,7 @@
 
 show_main_menu() {
     echo "========================================"
-    echo " OpenWrt APK Store"
+    echo " OpenWrt APK安装脚本 （CGG）"
     echo "========================================"
     echo ""
     echo "1.   安装插件"
