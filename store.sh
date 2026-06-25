@@ -671,31 +671,50 @@ repo_show_current() {
 repo_test_url() {
     local url="$1"
     local name="$2"
-    local timeout=4
+    local timeout=3
 
     # 从 URL 提取域名
     local domain
     domain=$(echo "$url" | sed 's|https\?://||;s|/.*$||')
 
-    # 用 ping 测 ICMP 延迟，可绕过大部分透明代理
+    # 先用 ping 测 ICMP 延迟
     local result
     result=$(ping -c 1 -W "$timeout" "$domain" 2>/dev/null)
     local rc=$?
 
     if [ $rc -eq 0 ] && [ -n "$result" ]; then
-        # BusyBox ping 输出: 64 bytes from 1.2.3.4: seq=0 ttl=52 time=12.345 ms
         local time_val
         time_val=$(echo "$result" | sed -n 's/.*time=\([0-9.]*\).*/\1/p' | head -1)
         if [ -n "$time_val" ]; then
             local int_ms
             int_ms=$(echo "$time_val" | awk '{print int($1)}')
             if [ "$int_ms" -ge 1000 ] 2>/dev/null; then
-                echo "  ${name}: ${time_val} ms"
+                echo "  ${name}: ${time_val} ms (ping)"
             else
-                echo "  ${name}: ${int_ms} ms"
+                echo "  ${name}: ${int_ms} ms (ping)"
             fi
+            return
+        fi
+    fi
+
+    # ping 失败时用 curl 兜底（绕过代理直连测试 HTTP 延迟）
+    local curl_result
+    curl_result=$(curl --noproxy '*' -o /dev/null -s -w '%{time_total}' --connect-timeout "$timeout" --max-time "$timeout" "$url" 2>/dev/null)
+    local curl_rc=$?
+
+    if [ $curl_rc -eq 0 ] && [ -n "$curl_result" ]; then
+        local curl_ms
+        curl_ms=$(echo "$curl_result" | awk '{printf "%.1f", $1 * 1000}')
+        local int_curl_ms
+        int_curl_ms=$(echo "$curl_result" | awk '{print int($1 * 1000)}')
+        if [ "$int_curl_ms" -eq 0 ] 2>/dev/null; then
+            echo "  ${name}: < 1 ms (curl)"
+        elif [ "$int_curl_ms" -ge 1000 ] 2>/dev/null; then
+            local sec
+            sec=$(echo "$curl_result" | awk '{printf "%.2f", $1}')
+            echo "  ${name}: ${sec} s (curl)"
         else
-            echo "  ${name}: 延迟获取失败"
+            echo "  ${name}: ${int_curl_ms} ms (curl)"
         fi
     else
         echo "  ${name}: 超时 / 不可达"
