@@ -704,9 +704,9 @@ repo_test_latency() {
     echo "正在测试以下源延迟:"
     echo ""
 
-    repo_test_url "https://mirrors.ustc.edu.cn" "中科大源 (USTC)"
-    repo_test_url "https://mirrors.tuna.tsinghua.edu.cn" "清华源 (Tsinghua)"
-    repo_test_url "https://downloads.openwrt.org" "官方源 (Official)"
+    repo_test_url "https://mirrors.ustc.edu.cn/openwrt/" "中科大源 (USTC)"
+    repo_test_url "https://mirrors.tuna.tsinghua.edu.cn/openwrt/" "清华源 (Tsinghua)"
+    repo_test_url "https://downloads.openwrt.org/" "官方源 (Official)"
 
     echo ""
 }
