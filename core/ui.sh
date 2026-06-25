@@ -102,6 +102,7 @@ show_repo_menu() {
     echo -e "  3.  官方源 (Official)"
     echo -e "  4.  恢复默认源"
     echo -e "  5.  查看当前源"
+    echo -e "  6.  测试源延迟"
     echo -e "  0.  返回上级"
     echo ""
 }

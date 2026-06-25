@@ -550,6 +550,10 @@ modify_repo() {
                 repo_show_current
                 wait_for_enter
                 ;;
+            6)
+                repo_test_latency
+                wait_for_enter
+                ;;
             0)
                 return
                 ;;
@@ -660,6 +664,51 @@ repo_show_current() {
     echo "当前源: ${name}"
     echo ""
     cat "$REPO_DISTFEEDS"
+    echo ""
+}
+
+# 测试源延迟（ms）
+repo_test_url() {
+    local url="$1"
+    local name="$2"
+    local timeout=5
+
+    local result
+    result=$(curl -o /dev/null -s -w '%{time_total}' --connect-timeout "$timeout" --max-time "$timeout" "$url" 2>/dev/null)
+    local rc=$?
+
+    if [ $rc -eq 0 ] && [ -n "$result" ]; then
+        local ms
+        ms=$(echo "$result * 1000" | awk '{printf "%.0f", $1}')
+        if [ "$ms" -lt 1000 ]; then
+            echo "  ${name}: ${ms} ms"
+        else
+            local sec
+            sec=$(echo "$result" | awk '{printf "%.2f", $1}')
+            echo "  ${name}: ${sec} s"
+        fi
+    else
+        echo "  ${name}: 超时 / 不可达"
+    fi
+}
+
+repo_test_latency() {
+    echo ""
+    echo "================================"
+    echo " 测试源延迟"
+    echo "================================"
+    echo ""
+
+    local base_url
+    base_url=$(head -1 "$REPO_DISTFEEDS" 2>/dev/null | grep -oP 'https?://[^/]+' | head -1)
+
+    echo "测试目标: ${base_url:-$(head -1 "$REPO_DISTFEEDS" 2>/dev/null)}"
+    echo ""
+
+    repo_test_url "https://mirrors.ustc.edu.cn" "中科大源 (USTC)"
+    repo_test_url "https://mirrors.tuna.tsinghua.edu.cn" "清华源 (Tsinghua)"
+    repo_test_url "https://downloads.openwrt.org" "官方源 (Official)"
+
     echo ""
 }
 
