@@ -6,7 +6,7 @@ REPO_URL="https://github.com/chengege666/OpenWrt-APK"
 INSTALL_DIR="/root/apk-store"
 
 echo "================================"
-echo " OpenWrt APK Store 安装器"
+echo " OpenWrt APK安装脚本 （CGG） 安装器"
 echo "================================"
 echo ""
 
@@ -66,6 +66,6 @@ chmod +x /usr/bin/apk-store
 
 echo "[成功] 快捷命令已创建: apk-store"
 echo ""
-echo "[启动] OpenWrt APK Store..."
+echo "[启动] OpenWrt APK安装脚本..."
 echo ""
 sh "${INSTALL_DIR}/store.sh"

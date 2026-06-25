@@ -80,7 +80,7 @@ main_menu() {
                 update_store
                 ;;
             0)
-                echo "退出 OpenWrt APK Store"
+                echo "退出 OpenWrt APK安装脚本 （CGG）"
                 exit 0
                 ;;
             *)
@@ -393,7 +393,7 @@ uninstall_store() {
 update_store() {
     echo ""
     echo "================================"
-    echo " 更新 OpenWrt APK Store"
+    echo " 更新 OpenWrt APK安装脚本 （CGG）"
     echo "================================"
     echo ""
 
@@ -758,9 +758,9 @@ run_custom_shortcut() {
 }
 
 init() {
-    echo "================================"
-    echo " OpenWrt APK Store"
-    echo "================================"
+    echo "========================================"
+    echo " OpenWrt APK安装脚本 （CGG）"
+    echo "========================================"
     echo ""
 
     if ! check_internet; then
