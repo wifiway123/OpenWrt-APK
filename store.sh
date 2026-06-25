@@ -70,6 +70,10 @@ main_menu() {
                 sh "${SCRIPT_DIR}/core/apk-opts.sh"
                 wait_for_enter
                 ;;
+            9)
+                modify_repo
+                wait_for_enter
+                ;;
             00)
                 uninstall_store
                 ;;
@@ -515,6 +519,120 @@ EOF
     echo "[成功] 快捷键 ${key} 已设置"
     echo "在终端输入 ${key} 即可启动 APK Store"
     sleep 2
+}
+
+# ============================================================
+# 软件源修改模块
+# ============================================================
+modify_repo() {
+    while true; do
+        show_repo_menu
+        printf "请选择: "
+        read_input
+
+        case "$choice" in
+            1)
+                repo_ustc
+                wait_for_enter
+                ;;
+            2)
+                repo_tsinghua
+                wait_for_enter
+                ;;
+            3)
+                repo_official
+                wait_for_enter
+                ;;
+            4)
+                repo_restore
+                wait_for_enter
+                ;;
+            0)
+                return
+                ;;
+            *)
+                echo "[错误] 无效输入，请重新选择"
+                sleep 1
+                ;;
+        esac
+    done
+}
+
+REPO_DISTFEEDS="/etc/apk/repositories.d/distfeeds.list"
+REPO_BACKUP="/etc/apk-store-repo.backup"
+
+# 切换前备份原始源文件（仅首次备份）
+repo_backup_first() {
+    if [ ! -f "$REPO_BACKUP" ] && [ -f "$REPO_DISTFEEDS" ]; then
+        cp -f "$REPO_DISTFEEDS" "$REPO_BACKUP"
+        echo "[备份] 原始源文件已备份至 ${REPO_BACKUP}"
+    fi
+}
+
+# 检测目标源文件是否存在
+repo_check_file() {
+    if [ ! -f "$REPO_DISTFEEDS" ]; then
+        echo "[错误] 未找到源文件: ${REPO_DISTFEEDS}"
+        return 1
+    fi
+    return 0
+}
+
+repo_ustc() {
+    repo_check_file || return
+    repo_backup_first
+
+    echo ""
+    echo "[修改] 正在切换至中科大源..."
+    sed -i 's|downloads.openwrt.org|mirrors.ustc.edu.cn/openwrt|g' "$REPO_DISTFEEDS"
+    echo "[完成] 已切换至中科大源"
+    echo "[更新] 正在刷新软件列表..."
+    apk update
+    echo ""
+}
+
+repo_tsinghua() {
+    repo_check_file || return
+    repo_backup_first
+
+    echo ""
+    echo "[修改] 正在切换至清华源..."
+    sed -i 's|downloads.openwrt.org|mirrors.tuna.tsinghua.edu.cn/openwrt|g' "$REPO_DISTFEEDS"
+    echo "[完成] 已切换至清华源"
+    echo "[更新] 正在刷新软件列表..."
+    apk update
+    echo ""
+}
+
+repo_official() {
+    repo_check_file || return
+    repo_backup_first
+
+    echo ""
+    echo "[修改] 正在切换至官方源..."
+    sed -i 's|mirrors.ustc.edu.cn/openwrt|downloads.openwrt.org|g' "$REPO_DISTFEEDS"
+    sed -i 's|mirrors.tuna.tsinghua.edu.cn/openwrt|downloads.openwrt.org|g' "$REPO_DISTFEEDS"
+    echo "[完成] 已切换至官方源"
+    echo "[更新] 正在刷新软件列表..."
+    apk update
+    echo ""
+}
+
+repo_restore() {
+    if [ ! -f "$REPO_BACKUP" ]; then
+        echo ""
+        echo "[错误] 未找到备份文件，无法恢复"
+        echo ""
+        return
+    fi
+
+    echo ""
+    echo "[恢复] 正在从备份恢复原始源文件..."
+    cp -f "$REPO_BACKUP" "$REPO_DISTFEEDS"
+    echo "[完成] 已恢复为默认源"
+    echo "[更新] 正在刷新软件列表..."
+    apk update
+    echo ""
 }
 
 run_custom_shortcut() {

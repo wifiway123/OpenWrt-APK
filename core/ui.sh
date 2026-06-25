@@ -14,6 +14,7 @@ show_main_menu() {
     echo "6.   自定义 overlay 扩容"
     echo "7.   查看系统信息"
     echo "8.   APK 安装参数 (--allow-untrusted)"
+    echo "9.   软件源修改"
     echo "00.  卸载脚本"
     echo "000. 更新脚本"
     echo "0.   退出"
@@ -88,6 +89,19 @@ show_update_menu() {
     echo -e "  13. 更新 WeChatPush (消息推送)  14. 更新 PassWall (科学上网)"
     echo -e "  15. 更新 Nikki (科学上网)       16. 更新全部"
 echo -e "  0.  返回上级"
+    echo ""
+}
+
+show_repo_menu() {
+    echo "================================"
+    echo " 软件源修改"
+    echo "================================"
+    echo ""
+    echo -e "  1.  中科大源 (USTC)"
+    echo -e "  2.  清华源 (Tsinghua)"
+    echo -e "  3.  官方源 (Official)"
+    echo -e "  4.  恢复默认源"
+    echo -e "  0.  返回上级"
     echo ""
 }
 
