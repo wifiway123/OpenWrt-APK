@@ -72,7 +72,6 @@ main_menu() {
                 ;;
             9)
                 modify_repo
-                wait_for_enter
                 ;;
             00)
                 uninstall_store
@@ -644,11 +643,23 @@ repo_show_current() {
     echo "================================"
     echo " 当前软件源"
     echo "================================"
-    if [ -f "$REPO_DISTFEEDS" ]; then
-        cat "$REPO_DISTFEEDS"
-    else
+    if [ ! -f "$REPO_DISTFEEDS" ]; then
         echo "[提示] 未找到源文件: ${REPO_DISTFEEDS}"
+        echo ""
+        return
     fi
+
+    local name="未知源"
+    if grep -q "mirrors.ustc.edu.cn" "$REPO_DISTFEEDS" 2>/dev/null; then
+        name="中科大源 (USTC)"
+    elif grep -q "mirrors.tuna.tsinghua.edu.cn" "$REPO_DISTFEEDS" 2>/dev/null; then
+        name="清华源 (Tsinghua)"
+    elif grep -q "downloads.openwrt.org" "$REPO_DISTFEEDS" 2>/dev/null; then
+        name="官方源 (Official)"
+    fi
+    echo "当前源: ${name}"
+    echo ""
+    cat "$REPO_DISTFEEDS"
     echo ""
 }
 
