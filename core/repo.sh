@@ -188,6 +188,112 @@ repo_update() {
     echo ""
 }
 
+# 测速并自动应用最快源
+_repo_get_latency_ms() {
+    local url="$1"
+    local domain
+    domain=$(echo "$url" | sed 's|https\?://||;s|/.*$||')
+
+    # 优先 ping
+    local result
+    result=$(ping -c 1 -W 3 "$domain" 2>/dev/null)
+    if [ $? -eq 0 ] && [ -n "$result" ]; then
+        local time_val
+        time_val=$(echo "$result" | sed -n 's/.*time=\([0-9.]*\).*/\1/p' | head -1)
+        if [ -n "$time_val" ]; then
+            echo "$(echo "$time_val" | awk '{printf "%.0f", $1}')"
+            return 0
+        fi
+    fi
+
+    # ping 失败用 curl 兜底
+    local curl_result
+    curl_result=$(curl --noproxy '*' -o /dev/null -s -w '%{time_total}' --connect-timeout 3 --max-time 3 "$url" 2>/dev/null)
+    if [ $? -eq 0 ] && [ -n "$curl_result" ]; then
+        local curl_ms
+        curl_ms=$(echo "$curl_result" | awk '{printf "%.0f", $1 * 1000}')
+        echo "$curl_ms"
+        return 0
+    fi
+
+    return 1
+}
+
+repo_test_and_apply() {
+    echo ""
+    echo "========================================"
+    echo " 测速并自动应用最快源"
+    echo "========================================"
+    echo ""
+
+    local sources="
+ustc|中科大源 (USTC)|https://mirrors.ustc.edu.cn/openwrt/
+tsinghua|清华源 (Tsinghua)|https://mirrors.tuna.tsinghua.edu.cn/openwrt/
+official|官方源 (Official)|https://downloads.openwrt.org/
+"
+
+    local fastest_name=""
+    local fastest_url=""
+    local fastest_ms=99999
+    local results=""
+
+    echo "$sources" | while IFS="|" read -r key name url; do
+        [ -z "$key" ] && continue
+        printf "  测速 %s ... " "$name"
+        local ms
+        ms=$(_repo_get_latency_ms "$url")
+        if [ -n "$ms" ]; then
+            echo "${ms} ms"
+            # 用临时文件保存最快结果
+            echo "${key}|${name}|${url}|${ms}" >> /tmp/repo_speed_result.$$
+        else
+            echo "超时 / 不可达"
+        fi
+    done
+
+    # 从临时文件找出最快源
+    if [ -f /tmp/repo_speed_result.$$ ]; then
+        local best_line
+        best_line=$(sort -t'|' -k4 -n /tmp/repo_speed_result.$$ | head -1)
+        rm -f /tmp/repo_speed_result.$$
+        if [ -n "$best_line" ]; then
+            local best_key best_name best_url best_ms
+            best_key=$(echo "$best_line" | cut -d'|' -f1)
+            best_name=$(echo "$best_line" | cut -d'|' -f2)
+            best_url=$(echo "$best_line" | cut -d'|' -f3)
+            best_ms=$(echo "$best_line" | cut -d'|' -f4)
+
+            echo ""
+            echo "========================================"
+            echo " 最快源: ${best_name} - ${best_ms} ms"
+            echo "========================================"
+            echo ""
+
+            printf "是否切换至 %s？(y/n): " "$best_name"
+            local confirm
+            read -r confirm < /dev/tty 2>/dev/null || read -r confirm
+            case "$(echo "$confirm" | tr 'a-z' 'A-Z')" in
+                Y|YES)
+                    case "$best_key" in
+                        ustc) repo_ustc ;;
+                        tsinghua) repo_tsinghua ;;
+                        official) repo_official ;;
+                    esac
+                    echo "[完成] 已切换至 ${best_name}"
+                    ;;
+                *)
+                    echo "[取消] 未切换"
+                    ;;
+            esac
+        fi
+    else
+        echo ""
+        echo "[错误] 所有源均不可达"
+    fi
+
+    wait_for_enter
+}
+
 # 软件源修改菜单（由 store.sh 回调）
 modify_repo() {
     while true; do
@@ -223,6 +329,9 @@ modify_repo() {
             7)
                 repo_update
                 wait_for_enter
+                ;;
+            8)
+                repo_test_and_apply
                 ;;
             0)
                 return
