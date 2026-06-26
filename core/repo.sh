@@ -35,6 +35,7 @@ _repo_reset_all() {
 repo_ustc() {
     repo_check_file || return
     repo_backup_first
+    _repo_reset_all
 
     echo ""
     echo "[修改] 正在切换至中科大源..."
@@ -48,6 +49,7 @@ repo_ustc() {
 repo_tsinghua() {
     repo_check_file || return
     repo_backup_first
+    _repo_reset_all
 
     echo ""
     echo "[修改] 正在切换至清华源..."
