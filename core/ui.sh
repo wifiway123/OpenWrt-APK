@@ -110,7 +110,6 @@ show_repo_menu() {
     echo -e " 10.  查看当前源"
     echo -e " 11.  测试源延迟"
     echo -e " 12.  更新软件源"
-    echo -e " 13.  添加 openwrt.ai 附加源 (Kiddin9)"
     echo -e "  0.  返回上级"
     echo ""
 }

@@ -112,31 +112,6 @@ repo_sjtug() {
     echo ""
 }
 
-repo_openwrt_ai() {
-    repo_check_file || return
-
-    . /etc/openwrt_release 2>/dev/null
-    local ver
-    ver=$(echo "$DISTRIB_RELEASE" | cut -d'.' -f1,2)
-    [ -z "$ver" ] && ver="25.12"
-
-    local arch
-    arch=$(apk --print-arch 2>/dev/null || uname -m)
-    [ -z "$arch" ] && { echo "[错误] 无法检测架构"; return 1; }
-
-    local repo_line="src/gz openwrt_kiddin9 https://dl.openwrt.ai/packages-${ver}/${arch}"
-
-    echo ""
-    echo "[修改] 正在添加 openwrt.ai 附加源..."
-    # 先移除旧行（如有），再追加
-    sed -i '/dl\.openwrt\.ai/d' "$REPO_DISTFEEDS"
-    echo "$repo_line" >> "$REPO_DISTFEEDS"
-    echo "[完成] 已添加 openwrt.ai 附加源 (${ver}/${arch})"
-    echo "[更新] 正在刷新软件列表..."
-    apk update
-    echo ""
-}
-
 repo_official() {
     repo_check_file || return
     repo_backup_first
@@ -150,8 +125,6 @@ repo_official() {
     sed -i 's|mirrors.huaweicloud.com/openwrt|downloads.openwrt.org|g' "$REPO_DISTFEEDS"
     sed -i 's|mirrors.163.com/openwrt|downloads.openwrt.org|g' "$REPO_DISTFEEDS"
     sed -i 's|mirrors.sjtug.sjtu.edu.cn/openwrt|downloads.openwrt.org|g' "$REPO_DISTFEEDS"
-    # 移除 openwrt.ai 附加源
-    sed -i '/dl\.openwrt\.ai/d' "$REPO_DISTFEEDS"
     echo "[完成] 已切换至官方源"
     echo "[更新] 正在刷新软件列表..."
     apk update
@@ -201,8 +174,6 @@ repo_show_current() {
         name="网易源 (163)"
     elif grep -q "mirrors.sjtug.sjtu.edu.cn" "$REPO_DISTFEEDS" 2>/dev/null; then
         name="上海交大源 (SJTUG)"
-    elif grep -q "dl.openwrt.ai" "$REPO_DISTFEEDS" 2>/dev/null; then
-        name="官方源 + openwrt.ai 附加源"
     elif grep -q "downloads.openwrt.org" "$REPO_DISTFEEDS" 2>/dev/null; then
         name="官方源 (Official)"
     fi
@@ -283,7 +254,6 @@ repo_test_latency() {
     repo_test_url "https://mirrors.huaweicloud.com/openwrt/" "华为云源 (Huawei)"
     repo_test_url "https://mirrors.163.com/openwrt/" "网易源 (163)"
     repo_test_url "https://mirrors.sjtug.sjtu.edu.cn/openwrt/" "上海交大源 (SJTUG)"
-    repo_test_url "https://dl.openwrt.ai/" "openwrt.ai (Kiddin9)"
     repo_test_url "https://downloads.openwrt.org/" "官方源 (Official)"
 
     echo ""
@@ -350,10 +320,6 @@ modify_repo() {
                 ;;
             12)
                 repo_update
-                wait_for_enter
-                ;;
-            13)
-                repo_openwrt_ai
                 wait_for_enter
                 ;;
             0)
