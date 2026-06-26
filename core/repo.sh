@@ -61,6 +61,7 @@ repo_tsinghua() {
 repo_aliyun() {
     repo_check_file || return
     repo_backup_first
+    _repo_reset_all
 
     echo ""
     echo "[修改] 正在切换至阿里云源..."
