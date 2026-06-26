@@ -21,6 +21,17 @@ repo_check_file() {
     return 0
 }
 
+# 将所有已知镜像恢复为 downloads.openwrt.org，确保能从任意源切换
+_repo_reset_all() {
+    sed -i 's|mirrors\.ustc\.edu\.cn/openwrt|downloads.openwrt.org|g' "$REPO_DISTFEEDS"
+    sed -i 's|mirrors\.tuna\.tsinghua\.edu\.cn/openwrt|downloads.openwrt.org|g' "$REPO_DISTFEEDS"
+    sed -i 's|mirrors\.aliyun\.com/openwrt|downloads.openwrt.org|g' "$REPO_DISTFEEDS"
+    sed -i 's|mirrors\.tencent\.com/openwrt|downloads.openwrt.org|g' "$REPO_DISTFEEDS"
+    sed -i 's|mirrors\.huaweicloud\.com/openwrt|downloads.openwrt.org|g' "$REPO_DISTFEEDS"
+    sed -i 's|mirrors\.163\.com/openwrt|downloads.openwrt.org|g' "$REPO_DISTFEEDS"
+    sed -i 's|mirrors\.sjtug\.sjtu\.edu\.cn/openwrt|downloads.openwrt.org|g' "$REPO_DISTFEEDS"
+}
+
 repo_ustc() {
     repo_check_file || return
     repo_backup_first
@@ -63,6 +74,7 @@ repo_aliyun() {
 repo_tencent() {
     repo_check_file || return
     repo_backup_first
+    _repo_reset_all
 
     echo ""
     echo "[修改] 正在切换至腾讯云源..."
@@ -76,6 +88,7 @@ repo_tencent() {
 repo_huawei() {
     repo_check_file || return
     repo_backup_first
+    _repo_reset_all
 
     echo ""
     echo "[修改] 正在切换至华为云源..."
@@ -89,6 +102,7 @@ repo_huawei() {
 repo_163() {
     repo_check_file || return
     repo_backup_first
+    _repo_reset_all
 
     echo ""
     echo "[修改] 正在切换至网易源..."
@@ -102,6 +116,7 @@ repo_163() {
 repo_sjtug() {
     repo_check_file || return
     repo_backup_first
+    _repo_reset_all
 
     echo ""
     echo "[修改] 正在切换至上海交大源..."
@@ -115,16 +130,10 @@ repo_sjtug() {
 repo_official() {
     repo_check_file || return
     repo_backup_first
+    _repo_reset_all
 
     echo ""
     echo "[修改] 正在切换至官方源..."
-    sed -i 's|mirrors.ustc.edu.cn/openwrt|downloads.openwrt.org|g' "$REPO_DISTFEEDS"
-    sed -i 's|mirrors.tuna.tsinghua.edu.cn/openwrt|downloads.openwrt.org|g' "$REPO_DISTFEEDS"
-    sed -i 's|mirrors.aliyun.com/openwrt|downloads.openwrt.org|g' "$REPO_DISTFEEDS"
-    sed -i 's|mirrors.tencent.com/openwrt|downloads.openwrt.org|g' "$REPO_DISTFEEDS"
-    sed -i 's|mirrors.huaweicloud.com/openwrt|downloads.openwrt.org|g' "$REPO_DISTFEEDS"
-    sed -i 's|mirrors.163.com/openwrt|downloads.openwrt.org|g' "$REPO_DISTFEEDS"
-    sed -i 's|mirrors.sjtug.sjtu.edu.cn/openwrt|downloads.openwrt.org|g' "$REPO_DISTFEEDS"
     echo "[完成] 已切换至官方源"
     echo "[更新] 正在刷新软件列表..."
     apk update
