@@ -346,7 +346,10 @@ update_all() {
     update_mosdns
     update_docker
     update_luci_theme_aurora
+    update_luci_theme_argon
     update_lucky
+    update_taskplan
+    update_passwall2
     update_smartdns
     update_daed
     update_istore
