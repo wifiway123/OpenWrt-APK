@@ -1,5 +1,21 @@
 #!/bin/sh
 # store.sh - OpenWrt APK Store 主安装器
+#
+# SPDX-FileCopyrightText: 2025 ChenGege
+#
+# SPDX-License-Identifier: GPL-3.0-only
+#
+# OpenWrt APK Store is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# OpenWrt APK Store is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with OpenWrt APK Store. If not, see <https://www.gnu.org/licenses/>.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 

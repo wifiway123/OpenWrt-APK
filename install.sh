@@ -1,5 +1,22 @@
 #!/bin/sh
 # install.sh - 一键安装脚本
+#
+# SPDX-FileCopyrightText: 2025 ChenGege
+#
+# SPDX-License-Identifier: GPL-3.0-only
+#
+# OpenWrt APK Store is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# OpenWrt APK Store is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with OpenWrt APK Store. If not, see <https://www.gnu.org/licenses/>.
+#
 # 使用方式: wget -O- https://raw.githubusercontent.com/chengege666/OpenWrt-APK/main/install.sh | sh
 
 REPO_URL="https://github.com/chengege666/OpenWrt-APK"
