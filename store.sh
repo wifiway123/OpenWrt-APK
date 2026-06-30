@@ -456,7 +456,10 @@ update_store() {
         return
     fi
 
-    local src_dir="${tmp_dir}/OpenWrt-APK-main"
+    local src_dir=""
+    for _d in "${tmp_dir}"/*/; do
+        [ -d "$_d" ] && src_dir="$_d" && break
+    done
 
     if [ ! -f "${src_dir}/store.sh" ]; then
         echo "[错误] 核心文件缺失，更新失败"

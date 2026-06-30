@@ -63,7 +63,10 @@ if ! unzip -o -q "${TMP_DIR}/repo.zip" -d "$TMP_DIR" 2>/dev/null; then
     exit 1
 fi
 
-SRC_DIR="${TMP_DIR}/OpenWrt-APK-main"
+SRC_DIR=""
+for _d in "${TMP_DIR}"/*/; do
+    [ -d "$_d" ] && SRC_DIR="$_d" && break
+done
 
 cp -f "${SRC_DIR}/store.sh" "${INSTALL_DIR}/store.sh"
 cp -rf "${SRC_DIR}/core/"* "${INSTALL_DIR}/core/"
