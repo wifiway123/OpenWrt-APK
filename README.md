@@ -19,8 +19,16 @@ OpenWrt APK 应用商店 - 一键插件安装系统
 
 ## 一键安装
 
+### GitHub
+
 ```sh
 wget -O- https://raw.githubusercontent.com/chengege666/OpenWrt-APK/main/install.sh | sh
+```
+
+### Gitee
+
+```sh
+wget -O- https://gitee.com/chengege666/OpenWrt-APK/raw/main/install.sh | sh
 ```
 
 ### 短链接
@@ -31,8 +39,19 @@ bash <(curl -sL https://lj.1231818.xyz/apk)
 
 ### 手动安装
 
+#### GitHub
+
 ```sh
 git clone https://github.com/chengege666/OpenWrt-APK.git
+cd OpenWrt-APK
+chmod +x store.sh
+./store.sh
+```
+
+#### Gitee
+
+```sh
+git clone https://gitee.com/chengege666/OpenWrt-APK.git
 cd OpenWrt-APK
 chmod +x store.sh
 ./store.sh
@@ -162,8 +181,11 @@ OpenWrt-APK/
 # 短链接
 bash <(curl -sL https://lj.1231818.xyz/kg)
 
-# 或 GitHub 直连
+# GitHub 直连
 bash <(curl -sL https://raw.githubusercontent.com/chengege666/OpenWrt-APK/main/core/apk-opts.sh)
+
+# Gitee 直连
+bash <(curl -sL https://gitee.com/chengege666/OpenWrt-APK/raw/main/core/apk-opts.sh)
 ```
 
 ### 脚本内调用
