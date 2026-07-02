@@ -116,7 +116,7 @@ show_mirror_menu() {
     echo " GitHub 下载加速"
     echo "================================"
     echo ""
-    echo -e "  1.  开启加速（默认镜像: gh.1231818.xyz）"
+    echo -e "  1.  开启加速（默认镜像: cgjs.1231818.xyz）"
     echo -e "  2.  自定义镜像地址"
     echo -e "  3.  关闭加速"
     echo -e "  4.  查看当前状态"
