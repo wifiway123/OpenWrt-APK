@@ -35,7 +35,7 @@ show_install_plugin_menu() {
     echo -e "  5.  Lucky (端口转发)           10. Daed (科学上网)"
     echo -e "  11. iStore (软件商店)          12. DiskMan (磁盘管理)"
     echo -e "  13. WeChatPush (消息推送)      14. PassWall (科学上网)"
-    echo -e "  15. Nikki (科学上网)"
+    echo -e "  15. Nikki (科学上网)           16. AdGuardHome (广告过滤)"
     echo -e "  0.  返回上级"
     echo ""
 }
@@ -72,7 +72,7 @@ show_uninstall_menu() {
     echo -e "  5.  卸载 Lucky (端口转发)       10. 卸载 Daed (科学上网)"
     echo -e "  11. 卸载 iStore (软件商店)      12. 卸载 DiskMan (磁盘管理)"
     echo -e "  13. 卸载 WeChatPush (消息推送)  14. 卸载 PassWall (科学上网)"
-    echo -e "  15. 卸载 Nikki (科学上网)"
+    echo -e "  15. 卸载 Nikki (科学上网)      16. 卸载 AdGuardHome (广告过滤)"
     echo -e "  0.  返回上级"
     echo ""
 }
@@ -89,7 +89,8 @@ show_update_menu() {
     echo -e "  5.  更新 Lucky (端口转发)       10. 更新 Daed (科学上网)"
     echo -e "  11. 更新 iStore (软件商店)      12. 更新 DiskMan (磁盘管理)"
     echo -e "  13. 更新 WeChatPush (消息推送)  14. 更新 PassWall (科学上网)"
-    echo -e "  15. 更新 Nikki (科学上网)       16. 更新全部"
+    echo -e "  15. 更新 Nikki (科学上网)      17. 更新 AdGuardHome (广告过滤)"
+    echo -e "  16. 更新全部"
 echo -e "  0.  返回上级"
     echo ""
 }

@@ -43,6 +43,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 [ -f "${SCRIPT_DIR}/plugins/luci-app-wechatpush.sh" ] && . "${SCRIPT_DIR}/plugins/luci-app-wechatpush.sh"
 . "${SCRIPT_DIR}/plugins/passwall.sh"
 . "${SCRIPT_DIR}/plugins/nikki.sh"
+. "${SCRIPT_DIR}/plugins/adguardhome.sh"
 
 
 TTY="/dev/tty"
@@ -180,6 +181,10 @@ install_plugin_menu() {
                 install_nikki
                 wait_for_enter
                 ;;
+            16)
+                install_adguardhome
+                wait_for_enter
+                ;;
             
             0)
                 return
@@ -257,6 +262,10 @@ uninstall_menu() {
                 ;;
             15)
                 uninstall_nikki
+                wait_for_enter
+                ;;
+            16)
+                uninstall_adguardhome
                 wait_for_enter
                 ;;
             
@@ -338,6 +347,10 @@ update_menu() {
                 update_nikki
                 wait_for_enter
                 ;;
+            17)
+                update_adguardhome
+                wait_for_enter
+                ;;
             16)
                 update_all
                 wait_for_enter
@@ -377,6 +390,7 @@ update_all() {
     update_wechatpush
     update_passwall
     update_nikki
+    update_adguardhome
 
     echo ""
     echo "================================"
