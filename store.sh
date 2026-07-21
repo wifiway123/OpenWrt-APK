@@ -45,6 +45,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "${SCRIPT_DIR}/plugins/nikki.sh"
 . "${SCRIPT_DIR}/plugins/adguardhome.sh"
 . "${SCRIPT_DIR}/plugins/oxidns.sh"
+. "${SCRIPT_DIR}/plugins/arcane.sh"
 
 
 TTY="/dev/tty"
@@ -190,6 +191,10 @@ install_plugin_menu() {
                 install_oxidns
                 wait_for_enter
                 ;;
+            18)
+                install_arcane
+                wait_for_enter
+                ;;
             
             0)
                 return
@@ -275,6 +280,10 @@ uninstall_menu() {
                 ;;
             17)
                 uninstall_oxidns
+                wait_for_enter
+                ;;
+            18)
+                uninstall_arcane
                 wait_for_enter
                 ;;
             
@@ -364,6 +373,10 @@ update_menu() {
                 update_oxidns
                 wait_for_enter
                 ;;
+            19)
+                update_arcane
+                wait_for_enter
+                ;;
             16)
                 update_all
                 wait_for_enter
@@ -405,6 +418,7 @@ update_all() {
     update_nikki
     update_adguardhome
     update_oxidns
+    update_arcane
 
     echo ""
     echo "================================"
