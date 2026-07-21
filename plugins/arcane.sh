@@ -64,7 +64,9 @@ EOF
         echo "[成功] Arcane 已启动，访问地址: http://<路由器IP>:3552"
         show_success
     else
-        echo "[错误] Arcane 启动失败，请检查 Docker 状态。"
+        echo "[错误] Arcane 启动失败。"
+        echo "[提示] 如果您看到 'failed to mount /tmp/containerd-mount... err: invalid argument'，这通常是因为 OpenWrt 系统底层的 overlayfs 不支持 index=off 或者当前所在的文件系统不支持 overlay 挂载。"
+        echo "[修复建议] 请检查 Docker 的存储驱动设置，或将 Docker 根目录移动到 ext4/f2fs 分区。"
         return 1
     fi
 }
