@@ -8,14 +8,63 @@ install_arcane() {
     echo "================================"
     echo ""
 
-    echo "[安装] 正在运行 Arcane 一键安装脚本..."
-    if wget -qO /usr/bin/openwrt-easy https://raw.githubusercontent.com/slobys/openwrt-official-one-click/main/bootstrap.sh && chmod +x /usr/bin/openwrt-easy; then
-        echo "[提示] 下载成功，正在启动 openwrt-easy 安装向导..."
-        openwrt-easy
-        echo "[成功] 执行完毕"
+    if ! command -v docker >/dev/null 2>&1; then
+        echo "[错误] 未检测到 Docker 环境，请先安装 Docker。"
+        return 1
+    fi
+
+    echo "[配置] 正在准备 Arcane 目录..."
+    local arcane_dir="/opt/arcane"
+    local data_dir="$arcane_dir/data"
+    local projects_dir="$arcane_dir/projects"
+
+    mkdir -p "$data_dir" "$projects_dir"
+
+    echo "[配置] 正在生成随机密钥..."
+    local enc_key
+    local jwt_secret
+    if command -v openssl >/dev/null 2>&1; then
+        enc_key=$(openssl rand -hex 16)
+        jwt_secret=$(openssl rand -hex 16)
+    else
+        enc_key=$(tr -dc 'a-f0-9' < /dev/urandom | head -c 32)
+        jwt_secret=$(tr -dc 'a-f0-9' < /dev/urandom | head -c 32)
+    fi
+
+    echo "[配置] 正在生成 docker-compose.yml..."
+    cat > "$arcane_dir/docker-compose.yml" <<EOF
+services:
+  arcane:
+    image: ghcr.io/getarcaneapp/manager:latest
+    container_name: arcane
+    ports:
+      - '3552:3552'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/app/data
+      - ./projects:/app/data/projects
+    environment:
+      - APP_URL=http://localhost:3552
+      - ENCRYPTION_KEY=$enc_key
+      - JWT_SECRET=$jwt_secret
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
+EOF
+
+    echo "[启动] 正在拉取镜像并启动容器..."
+    cd "$arcane_dir" || return 1
+    if command -v docker-compose >/dev/null 2>&1; then
+        docker-compose up -d
+    else
+        docker compose up -d
+    fi
+
+    local status=$?
+    if [ $status -eq 0 ]; then
+        echo "[成功] Arcane 已启动，访问地址: http://<路由器IP>:3552"
         show_success
     else
-        echo "[错误] 下载或设置 openwrt-easy 失败"
+        echo "[错误] Arcane 启动失败，请检查 Docker 状态。"
         return 1
     fi
 }
@@ -27,20 +76,27 @@ uninstall_arcane() {
     echo "================================"
     echo ""
 
-    if command -v openwrt-easy >/dev/null 2>&1; then
-        echo "[卸载] 正在调用 openwrt-easy 进行卸载..."
-        openwrt-easy --arcane-uninstall
+    local arcane_dir="/opt/arcane"
+
+    if [ -d "$arcane_dir" ]; then
+        echo "[卸载] 正在停止 Arcane 容器..."
+        cd "$arcane_dir" || return 1
+        if command -v docker-compose >/dev/null 2>&1; then
+            docker-compose down
+        else
+            docker compose down
+        fi
+        cd - >/dev/null || true
     else
-        echo "[错误] 未找到 openwrt-easy，可能未安装或已移除。"
-        echo "[提示] 如果有残留容器，请手动执行: docker rm -f arcane && docker rmi arcane"
+        echo "[提示] 未找到 Arcane 目录，尝试强制删除容器..."
+        docker rm -f arcane 2>/dev/null || true
     fi
 
-    echo "[清理] 清理 openwrt-easy 相关文件..."
-    rm -f /usr/bin/openwrt-easy 2>/dev/null
-    rm -rf /usr/lib/openwrt-official-one-click 2>/dev/null
+    echo "[清理] 正在删除 Arcane 配置和数据目录 ($arcane_dir)..."
+    rm -rf "$arcane_dir"
 
-    echo "[重启] 重启 LuCI..."
-    restart_luci
+    echo "[清理] 正在删除镜像缓存..."
+    docker rmi ghcr.io/getarcaneapp/manager:latest 2>/dev/null || true
 
     echo "[成功] 卸载清理完成"
 }
@@ -52,13 +108,29 @@ update_arcane() {
     echo "================================"
     echo ""
 
-    echo "[更新] 正在重新运行 Arcane 一键脚本进行更新..."
-    if wget -qO /usr/bin/openwrt-easy https://raw.githubusercontent.com/slobys/openwrt-official-one-click/main/bootstrap.sh && chmod +x /usr/bin/openwrt-easy; then
-        openwrt-easy
-        echo "[成功] 执行完毕"
+    local arcane_dir="/opt/arcane"
+
+    if [ ! -d "$arcane_dir" ]; then
+        echo "[错误] 未找到 Arcane 目录，可能未安装或安装路径异常。"
+        return 1
+    fi
+
+    echo "[更新] 正在拉取最新镜像并重启..."
+    cd "$arcane_dir" || return 1
+    if command -v docker-compose >/dev/null 2>&1; then
+        docker-compose pull
+        docker-compose up -d
+    else
+        docker compose pull
+        docker compose up -d
+    fi
+
+    local status=$?
+    if [ $status -eq 0 ]; then
+        echo "[成功] Arcane 更新完成"
         show_success
     else
-        echo "[错误] 更新失败"
+        echo "[错误] Arcane 更新失败"
         return 1
     fi
 }
