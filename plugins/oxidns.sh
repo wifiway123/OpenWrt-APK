@@ -30,14 +30,20 @@ uninstall_oxidns() {
 
     echo "[卸载] 正在移除相关包..."
     if command -v apk >/dev/null 2>&1; then
-        apk del luci-app-oxidns luci-i18n-oxidns-zh-cn oxidns 2>/dev/null
+        apk del luci-app-oxidns luci-i18n-oxidns-zh-cn oxidns --force 2>/dev/null
     else
-        opkg remove luci-app-oxidns luci-i18n-oxidns-zh-cn oxidns 2>/dev/null
+        opkg remove luci-app-oxidns luci-i18n-oxidns-zh-cn oxidns --autoremove 2>/dev/null
     fi
 
     echo "[清理] 清理残留文件..."
     rm -rf /usr/share/oxidns/webui 2>/dev/null
     rm -f /usr/bin/oxidns 2>/dev/null
+    rm -f /etc/init.d/oxidns 2>/dev/null
+    rm -rf /usr/lib/lua/luci/controller/oxidns.lua 2>/dev/null
+    rm -rf /usr/lib/lua/luci/model/cbi/oxidns 2>/dev/null
+    rm -rf /usr/lib/lua/luci/view/oxidns 2>/dev/null
+    rm -rf /tmp/luci-indexcache 2>/dev/null
+    rm -rf /tmp/luci-modulecache 2>/dev/null
 
     echo "[提示] 配置文件 /etc/oxidns/config.yaml 和工作目录 /var/lib/oxidns 已保留，若需彻底清理请手动删除。"
 
