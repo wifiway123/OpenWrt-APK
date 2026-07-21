@@ -30,9 +30,14 @@ uninstall_oxidns() {
 
     echo "[卸载] 正在移除相关包..."
     if command -v apk >/dev/null 2>&1; then
-        apk del luci-app-oxidns luci-i18n-oxidns-zh-cn oxidns 2>/dev/null || true
+        # 分别卸载以避免单个包失败导致整体中断
+        apk del luci-app-oxidns 2>/dev/null || true
+        apk del luci-i18n-oxidns-zh-cn 2>/dev/null || true
+        apk del oxidns 2>/dev/null || true
     else
-        opkg remove luci-app-oxidns luci-i18n-oxidns-zh-cn oxidns --autoremove 2>/dev/null || true
+        opkg remove luci-app-oxidns --autoremove 2>/dev/null || true
+        opkg remove luci-i18n-oxidns-zh-cn --autoremove 2>/dev/null || true
+        opkg remove oxidns --autoremove 2>/dev/null || true
     fi
 
     echo "[清理] 清理残留文件..."
