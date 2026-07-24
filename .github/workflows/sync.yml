@@ -1,0 +1,67 @@
+name: Auto Sync Upstream Mirror (Universal Smart Check)
+
+on:
+  schedule:
+    # 每天凌晨 2:15 自动执行 (北京时间 10:15)
+    - cron: '15 2 * * *'
+  workflow_dispatch: # 允许手动点击按钮触发
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. 正常拉取本地仓库环境
+      - name: Checkout local repository
+        uses: actions/checkout@v4
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
+      - name: Check and Sync
+        run: |
+          # ==================== 以后换新仓库只需改下面这两行 ====================
+          UPSTREAM_OWNER="chengege666"      # 原作者的 GitHub 用户名
+          REPO_NAME="OpenWrt-APK"           # 仓库的准确名称
+          # ====================================================================
+          
+          # 1. 获取上游原作者最新的 Commit ID
+          UPSTREAM_COMMIT=$(git ls-remote https://github.com/${UPSTREAM_OWNER}/${REPO_NAME}.git refs/heads/main | awk '{print $1}')
+          
+          # 2. 获取你本地 main 分支最新的 Commit ID
+          LOCAL_COMMIT=$(git ls-remote https://github.com/wifiway123/${REPO_NAME}.git refs/heads/main | awk '{print $1}')
+          
+          echo "Upstream latest commit: $UPSTREAM_COMMIT"
+          echo "Local main latest commit: $LOCAL_COMMIT"
+          
+          # 3. 对比逻辑：如果没有新修改，直接退出
+          if [ "$UPSTREAM_COMMIT" = "$LOCAL_COMMIT" ]; then
+            echo "[提示] 上游没有新修改，无需同步。退出。"
+            exit 0
+          fi
+          
+          echo "[检测到更新] 上游有新代码，开始执行原生覆盖同步..."
+          
+          # 4. 把当前正在运行的这个 sync.yml 备份到系统临时目录 /tmp 中
+          cp .github/workflows/sync.yml /tmp/sync.yml
+          
+          # 5. 原生 Git 操作：添加上游源并精准拉取最新的一层历史
+          git remote add upstream https://github.com/${UPSTREAM_OWNER}/${REPO_NAME}.git
+          git fetch upstream main --depth=1
+          
+          # 6. 【核心修复】用强行重置替代 clone，直接把本地目录洗成和上游一模一样
+          git reset --hard upstream/main
+          
+          # 7. 把刚刚备份的自己（工作流文件）安全放回原位
+          mkdir -p .github/workflows
+          cp /tmp/sync.yml .github/workflows/sync.yml
+          
+          # 8. 重新绑定凭证并强推回你自己的 main 分支
+          git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          
+          git add .github/workflows/sync.yml
+          git commit -m "chore: sync upstream and retain local workflow" || true
+          
+          git push origin HEAD:main --force
+          echo "[成功] 已成功完成上游全量覆盖，并完美保留了本地工作流！"
