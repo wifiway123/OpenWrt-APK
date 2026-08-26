@@ -46,6 +46,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "${SCRIPT_DIR}/plugins/adguardhome.sh"
 . "${SCRIPT_DIR}/plugins/oxidns.sh"
 . "${SCRIPT_DIR}/plugins/arcane.sh"
+[ -f "${SCRIPT_DIR}/plugins/luci-app-cloudflared.sh" ] && . "${SCRIPT_DIR}/plugins/luci-app-cloudflared.sh"
 
 
 TTY="/dev/tty"
@@ -195,6 +196,10 @@ install_plugin_menu() {
                 install_arcane
                 wait_for_enter
                 ;;
+            19)
+                install_cloudflared
+                wait_for_enter
+                ;;
             
             0)
                 return
@@ -284,6 +289,10 @@ uninstall_menu() {
                 ;;
             18)
                 uninstall_arcane
+                wait_for_enter
+                ;;
+            19)
+                uninstall_cloudflared
                 wait_for_enter
                 ;;
             
@@ -377,6 +386,10 @@ update_menu() {
                 update_arcane
                 wait_for_enter
                 ;;
+            20)
+                update_cloudflared
+                wait_for_enter
+                ;;
             16)
                 update_all
                 wait_for_enter
@@ -419,6 +432,7 @@ update_all() {
     update_adguardhome
     update_oxidns
     update_arcane
+    update_cloudflared
 
     echo ""
     echo "================================"
